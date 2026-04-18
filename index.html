@@ -705,6 +705,18 @@
     line-height: 1.4;
   }
 
+  .principle-note {
+    font-size: 12px;
+    color: var(--ink-500);
+    text-align: center;
+    line-height: 1.5;
+    padding: 10px 12px;
+    background: rgba(200, 54, 42, 0.05);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    letter-spacing: -0.01em;
+  }
+
   .modal-desc {
     font-size: 14px;
     color: var(--ink-600);
@@ -1036,7 +1048,7 @@
           <li><strong>카메라 켜기</strong>를 눌러 허용해주세요</li>
           <li>A4 용지가 가이드 프레임에 맞도록 조정해주세요</li>
           <li><strong>평가하기</strong>를 누르면 글씨를 분석합니다</li>
-          <li>반듯하고 정돈된 글씨일수록 점수가 높아요</li>
+          <li>명조체처럼 반듯하고 정돈된 글씨일수록 점수가 높아요</li>
         </ol>
         <button class="modal-close" id="modalClose">확인</button>
       </div>
@@ -1060,7 +1072,7 @@
           </svg>
         </div>
         <h3 class="modal-title" style="text-align:center;">평가 원리</h3>
-        <p class="modal-subdesc">AI가 3가지 기준으로 분석해요</p>
+        <p class="modal-subdesc">명조체를 기준으로 3가지를 분석해요</p>
 
         <div class="principle-list">
           <div class="principle-item">
@@ -1099,10 +1111,12 @@
             </div>
             <div class="principle-text">
               <strong>정돈도</strong>
-              <span>전체적으로 반듯하고 정돈되었는지</span>
+              <span>줄에 맞추어 반듯하게 쓰였는지</span>
             </div>
           </div>
         </div>
+
+        <p class="principle-note">명조체는 가로획은 얇고 세로획은 굵은, 정돈된 한글 활자체예요</p>
 
         <button class="modal-close" id="principleClose">알겠어요</button>
       </div>
@@ -1377,12 +1391,12 @@
 
   // ============ 글씨 분석 알고리즘 ============
   /**
-   * 궁서체 평가 방법론:
+   * 바른 글씨(명조체) 평가 방법론:
    * 1. 이미지를 그레이스케일로 변환 후 적응적 이진화로 글씨 추출
    * 2. 글씨 픽셀 비율 (ink density) - 너무 적거나 많으면 감점
-   * 3. 획 굵기 표준편차 (stroke variation) - 궁서체는 굵기 변화가 적당
-   * 4. 수직/수평 투영 분포 균일성 (자형 안정) - 글자 크기가 고를수록 좋음
-   * 5. 연결 성분의 종횡비 일관성 (문자 간 균형)
+   * 3. 획 굵기 일관성 - 명조체는 가로/세로 대비가 있으나 전체적으로 정돈됨
+   * 4. 베이스라인 정렬 - 줄 안에서 글자가 떠다니지 않고 바닥선에 맞음
+   * 5. 글자 크기 일관성 - 글자 폭/높이가 일정할수록 좋음
    * 6. 기울기/수평 정렬 (행의 정렬도)
    * => 이들을 가중 합산하여 100점 만점 산출
    */
@@ -1584,15 +1598,17 @@
     else if (inkRatio <= 0.20) inkScore = 1.0 - (inkRatio - 0.10) * 2.5; // 10~20%: 1.0 → 0.75
     else inkScore = Math.max(0, 0.75 - (inkRatio - 0.20) * 2.5); // 20%↑: 급격히 감점
 
-    // (b) 획 굵기 일관성 - 낮은 CV가 좋음 (기존은 거꾸로 되어있었음!)
-    // CV < 0.35: 매우 일관됨 (인쇄체/잘쓴 글씨)
-    // CV 0.35~0.55: 무난
-    // CV > 0.55: 불안정 (못 쓴 글씨)
+    // (b) 획 굵기 일관성 - 명조체는 가로/세로 대비가 있어 약간의 변화는 허용
+    // CV < 0.20: 너무 균일 (펠트펜/매직처럼 일정) - 괜찮음
+    // CV 0.20~0.45: 명조체 최적 구간 (가로/세로획 대비) - 만점
+    // CV 0.45~0.70: 불규칙해지는 구간 - 감점
+    // CV > 0.70: 매우 불안정 - 큰 감점
     let strokeScore;
-    if (strokeCV < 0.30) strokeScore = 1.0;
-    else if (strokeCV < 0.50) strokeScore = 1.0 - (strokeCV - 0.30) * 1.5; // 0.30~0.50: 1.0 → 0.7
-    else if (strokeCV < 0.80) strokeScore = 0.7 - (strokeCV - 0.50) * 1.7; // 0.50~0.80: 0.7 → 0.19
-    else strokeScore = Math.max(0, 0.19 - (strokeCV - 0.80) * 0.5);
+    if (strokeCV < 0.20) strokeScore = 0.95;
+    else if (strokeCV <= 0.45) strokeScore = 1.0;
+    else if (strokeCV < 0.70) strokeScore = 1.0 - (strokeCV - 0.45) * 2.4; // 0.45~0.70: 1.0 → 0.4
+    else if (strokeCV < 0.90) strokeScore = 0.4 - (strokeCV - 0.70) * 1.5; // 0.70~0.90: 0.4 → 0.1
+    else strokeScore = Math.max(0, 0.1 - (strokeCV - 0.90) * 0.5);
 
     // (c) 베이스라인 정렬 (신규 핵심) - 줄 안에서 글자들이 떠다니면 감점
     // jitter < 0.08: 매우 정렬됨
@@ -1667,7 +1683,7 @@
       metrics: {
         stroke: Math.round(metricStroke * 100),
         stability: Math.round(metricStability * 100),
-        gungseo: Math.round(metricTidy * 100)
+        tidy: Math.round(metricTidy * 100)
       },
       debug: {
         inkRatio: inkRatio.toFixed(3),
@@ -1800,7 +1816,7 @@
     setTimeout(() => {
       el.m1.style.width = metrics.stroke + '%';
       el.m2.style.width = metrics.stability + '%';
-      el.m3.style.width = metrics.gungseo + '%';
+      el.m3.style.width = metrics.tidy + '%';
     }, 200);
 
     updateGuide('RESULT', rank.title, rank.comment);
