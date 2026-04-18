@@ -179,6 +179,19 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .ver-tag {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 6px;
+    background: rgba(200, 54, 42, 0.08);
+    color: var(--vermilion);
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    font-family: ui-monospace, 'SF Mono', monospace;
+    vertical-align: 1px;
+  }
 
   .icon-btn {
     width: 38px; height: 38px;
@@ -386,7 +399,7 @@
     letter-spacing: -0.01em;
   }
 
-  /* ============ 점수 패널 ============ */
+  /* ============ 점수 패널 (3컬럼) ============ */
   .score-panel {
     background: linear-gradient(145deg, #fff 0%, var(--paper-50) 100%);
     border-radius: 18px;
@@ -396,8 +409,8 @@
     position: relative;
     overflow: hidden;
     display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 16px;
+    grid-template-columns: auto 1fr auto;
+    gap: 14px;
     align-items: center;
   }
   .score-panel::before {
@@ -466,13 +479,14 @@
     font-weight: 500;
   }
 
-  /* 세부 지표 (압축) */
+  /* 세부 지표 (중간 컬럼) */
   .metrics {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding-left: 14px;
+    padding: 0 12px;
     border-left: 1px dashed rgba(15, 14, 13, 0.1);
+    border-right: 1px dashed rgba(15, 14, 13, 0.1);
     min-width: 0;
   }
   .metric {
@@ -501,27 +515,27 @@
     transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
-  /* ============ 컨트롤 버튼 ============ */
-  .controls {
-    display: grid;
-    grid-template-columns: 1fr 1.5fr 1fr;
-    gap: 8px;
-    padding: 0;
-    flex-shrink: 0;
+  /* ============ 점수 패널 내 버튼 (세로 스택) ============ */
+  .score-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 90px;
   }
   .ctrl-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 14px 10px;
-    border-radius: 14px;
+    gap: 6px;
+    padding: 9px 10px;
+    border-radius: 11px;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 12.5px;
     transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
     letter-spacing: -0.01em;
+    white-space: nowrap;
   }
-  .ctrl-btn svg { width: 24px; height: 24px; }
+  .ctrl-btn svg { width: 20px; height: 20px; }
 
   .ctrl-secondary {
     background: rgba(255, 255, 255, 0.8);
@@ -558,7 +572,7 @@
     align-items: center;
     justify-content: center;
   }
-  .ctrl-primary .ctrl-icon { width: 30px; height: 30px; }
+  .ctrl-primary .ctrl-icon { width: 22px; height: 22px; }
 
   /* ============ 모달 ============ */
   .modal {
@@ -817,13 +831,15 @@
     .icon-btn svg { width: 18px; height: 18px; }
     .guide-title { font-size: 13.5px; }
     .guide-tag { font-size: 10px; padding: 2px 6px; }
-    .score-value { font-size: 44px; }
-    .score-panel { padding: 12px 14px; gap: 12px; }
-    .metrics { padding-left: 10px; }
-    .metric { grid-template-columns: 52px 1fr; gap: 6px; }
-    .metric-label { font-size: 10.5px; }
-    .ctrl-btn { padding: 12px 8px; font-size: 13px; }
-    .ctrl-btn svg { width: 22px; height: 22px; }
+    .score-value { font-size: 40px; }
+    .score-panel { padding: 12px 10px; gap: 8px; }
+    .metrics { padding: 0 8px; }
+    .metric { grid-template-columns: 48px 1fr; gap: 5px; }
+    .metric-label { font-size: 10px; }
+    .score-actions { min-width: 72px; gap: 5px; }
+    .ctrl-btn { padding: 8px 6px; font-size: 11px; gap: 4px; }
+    .ctrl-btn svg { width: 16px; height: 16px; }
+    .ctrl-primary .ctrl-icon { width: 18px; height: 18px; }
   }
 
   /* 짧은 세로 화면 (iPhone SE 등) */
@@ -868,7 +884,7 @@
         <span class="brand-mark">뽐</span>
         <div class="brand-text">
           <h1 class="brand-title">글뽐</h1>
-          <p class="brand-sub" id="guideDesc">내 글씨를 뽐내봐요!</p>
+          <p class="brand-sub" id="guideDesc">내 글씨를 뽐내봐요! <span class="ver-tag">v26.04.18.1325</span></p>
         </div>
       </div>
       <div class="header-actions">
@@ -978,8 +994,9 @@
       </div>
     </main>
 
-    <!-- 점수 패널 -->
+    <!-- 점수 패널 + 컨트롤 통합 (3컬럼: 점수 | 지표 | 버튼) -->
     <section class="score-panel" id="scorePanel">
+      <!-- 왼쪽: 점수 -->
       <div class="score-main">
         <div class="score-label-wrap">
           <span class="score-label">평가 점수</span>
@@ -989,7 +1006,7 @@
         <div class="score-rank" id="scoreRank">평가 대기중</div>
       </div>
 
-      <!-- 세부 지표 -->
+      <!-- 가운데: 세부 지표 -->
       <div class="metrics" id="metrics">
         <div class="metric">
           <span class="metric-label">획 균형</span>
@@ -1004,50 +1021,34 @@
           <div class="metric-bar"><div class="metric-fill" id="m3" style="width:0%"></div></div>
         </div>
       </div>
-    </section>
 
-    <!-- 컨트롤 버튼 -->
-    <div class="controls">
-      <button class="ctrl-btn ctrl-secondary" id="retryBtn" disabled>
-        <svg viewBox="0 0 24 24" fill="none">
-          <path d="M4 12a8 8 0 0 1 14-5.3" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-          <path d="M14 3l4.5 3.5L15 10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-          <path d="M20 12a8 8 0 0 1-14 5.3" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-          <path d="M10 21l-4.5-3.5L9 14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-          <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.25"/>
-        </svg>
-        <span>다시</span>
-      </button>
+      <!-- 오른쪽: 버튼 2개 (세로 스택) -->
+      <div class="score-actions">
+        <button class="ctrl-btn ctrl-primary" id="mainBtn">
+          <span class="ctrl-icon-wrap">
+            <svg class="ctrl-icon" viewBox="0 0 24 24" fill="none">
+              <path d="M4 8a3 3 0 0 1 3-3h1.2l1.1-1.6c.37-.56 1-.9 1.67-.9h2.06c.66 0 1.3.34 1.66.9L15.8 5H17a3 3 0 0 1 3 3v8.5a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V8Z" fill="currentColor"/>
+              <circle cx="12" cy="12.5" r="4" fill="var(--ink-900)"/>
+              <circle cx="12" cy="12.5" r="2.5" fill="currentColor" opacity="0.95"/>
+              <circle cx="10.8" cy="11.4" r="0.9" fill="white" opacity="0.95"/>
+              <path d="M20 4.5 L20.7 6 L22.2 6.7 L20.7 7.4 L20 8.9 L19.3 7.4 L17.8 6.7 L19.3 6 Z" fill="white" opacity="0.9"/>
+            </svg>
+          </span>
+          <span id="mainBtnText">카메라 켜기</span>
+        </button>
 
-      <button class="ctrl-btn ctrl-primary" id="mainBtn">
-        <span class="ctrl-icon-wrap">
-          <svg class="ctrl-icon" viewBox="0 0 24 24" fill="none">
-            <!-- 카메라 본체 (둥근 모서리) -->
-            <path d="M4 8a3 3 0 0 1 3-3h1.2l1.1-1.6c.37-.56 1-.9 1.67-.9h2.06c.66 0 1.3.34 1.66.9L15.8 5H17a3 3 0 0 1 3 3v8.5a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V8Z" fill="currentColor"/>
-            <!-- 렌즈 -->
-            <circle cx="12" cy="12.5" r="4" fill="var(--ink-900)"/>
-            <circle cx="12" cy="12.5" r="2.5" fill="currentColor" opacity="0.95"/>
-            <!-- 렌즈 하이라이트 -->
-            <circle cx="10.8" cy="11.4" r="0.9" fill="white" opacity="0.95"/>
-            <!-- 반짝이 별 (상단 우측) -->
-            <path d="M20 4.5 L20.7 6 L22.2 6.7 L20.7 7.4 L20 8.9 L19.3 7.4 L17.8 6.7 L19.3 6 Z" fill="white" opacity="0.9"/>
+        <button class="ctrl-btn ctrl-secondary" id="retryBtn" disabled>
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M4 12a8 8 0 0 1 14-5.3" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+            <path d="M14 3l4.5 3.5L15 10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M20 12a8 8 0 0 1-14 5.3" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+            <path d="M10 21l-4.5-3.5L9 14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.25"/>
           </svg>
-        </span>
-        <span id="mainBtnText">카메라 켜기</span>
-      </button>
-
-      <button class="ctrl-btn ctrl-secondary" id="flipBtn" disabled>
-        <svg viewBox="0 0 24 24" fill="none">
-          <path d="M4 8a3 3 0 0 1 3-3h2l1-1.5h4l1 1.5h2a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V8Z" fill="currentColor" opacity="0.18"/>
-          <path d="M4 8a3 3 0 0 1 3-3h2l1-1.5h4l1 1.5h2a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" fill="none"/>
-          <path d="M9 12a3 3 0 0 1 5.2-2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/>
-          <path d="M15 12a3 3 0 0 1-5.2 2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/>
-          <path d="M13.5 9 L14.5 10 L15.5 9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-          <path d="M10.5 15 L9.5 14 L8.5 15" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-        </svg>
-        <span>전환</span>
-      </button>
-    </div>
+          <span>다시</span>
+        </button>
+      </div>
+    </section>
 
     <!-- 도움말 모달 -->
     <div class="modal" id="infoModal" role="dialog" aria-hidden="true">
@@ -1198,7 +1199,6 @@
     mainBtn: document.getElementById('mainBtn'),
     mainBtnText: document.getElementById('mainBtnText'),
     retryBtn: document.getElementById('retryBtn'),
-    flipBtn: document.getElementById('flipBtn'),
     scoreValue: document.getElementById('scoreValue'),
     scoreRank: document.getElementById('scoreRank'),
     m1: document.getElementById('m1'),
@@ -1280,7 +1280,6 @@
       el.mainBtnText.textContent = '평가하기';
       el.mainBtn.classList.add('ready');
       el.retryBtn.disabled = false;
-      el.flipBtn.disabled = false;
 
       updateGuide('STEP 02', 'A4 용지를 프레임에 맞춰주세요', '수직으로 선명하게 비춰주세요');
 
@@ -1358,12 +1357,6 @@
     el.video.classList.remove('active');
     el.placeholder.classList.remove('hidden');
     el.frameGuide.classList.remove('active');
-  }
-
-  async function flipCamera() {
-    state.facingMode = state.facingMode === 'environment' ? 'user' : 'environment';
-    stopCamera();
-    await startCamera();
   }
 
   // ============ 안내 메시지 업데이트 ============
@@ -1997,7 +1990,6 @@
 
     state.analyzing = true;
     el.mainBtn.disabled = true;
-    el.flipBtn.disabled = true;
     el.scanLine.classList.add('active');
     el.analyzing.classList.add('active');
 
@@ -2060,7 +2052,6 @@
   function finishEvaluation() {
     state.analyzing = false;
     el.mainBtn.disabled = false;
-    el.flipBtn.disabled = false;
     el.scanLine.classList.remove('active');
     el.analyzing.classList.remove('active');
   }
@@ -2181,7 +2172,6 @@
   });
 
   el.retryBtn.addEventListener('click', reset);
-  el.flipBtn.addEventListener('click', flipCamera);
 
   el.infoBtn.addEventListener('click', () => {
     el.infoModal.classList.add('active');
