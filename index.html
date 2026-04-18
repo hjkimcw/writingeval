@@ -1395,15 +1395,13 @@
     let sum = 0;
     for (let i = 0; i < pixels; i++) {
       const idx = i * 4;
-      // 표준 루미넌스 공식
       const g = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
       gray[i] = g;
       sum += g;
     }
     const meanBrightness = sum / pixels;
 
-    // 2단계: Otsu 방식에 근접한 동적 임계값으로 이진화
-    // 간단하게는 평균보다 살짝 어두운 부분을 글씨로 판단
+    // 2단계: 동적 임계값 이진화
     const threshold = Math.max(70, Math.min(180, meanBrightness * 0.78));
     const binary = new Uint8Array(pixels);
     let inkCount = 0;
@@ -1413,18 +1411,16 @@
         inkCount++;
       }
     }
-
     const inkRatio = inkCount / pixels;
 
-    // 글씨가 너무 없거나 종이 전체가 어두우면 분석 실패
     if (inkRatio < 0.008) {
       return { score: null, reason: '글씨가 감지되지 않아요. 더 가까이 비춰주세요' };
     }
-    if (inkRatio > 0.45) {
+    if (inkRatio > 0.55) {
       return { score: null, reason: '조명이 너무 어둡거나 배경이 진해요' };
     }
 
-    // 3단계: 획 굵기 추정 (수평 방향 연속 런 길이의 분포)
+    // 3단계: 획 굵기 추정 (수평 런 길이)
     const strokeLengths = [];
     for (let y = 0; y < height; y++) {
       let runLen = 0;
@@ -1438,14 +1434,12 @@
       }
       if (runLen >= 1 && runLen <= 20) strokeLengths.push(runLen);
     }
-
     let strokeMean = 0, strokeStd = 0;
     if (strokeLengths.length > 0) {
       strokeMean = strokeLengths.reduce((a, b) => a + b, 0) / strokeLengths.length;
       const variance = strokeLengths.reduce((acc, v) => acc + (v - strokeMean) ** 2, 0) / strokeLengths.length;
       strokeStd = Math.sqrt(variance);
     }
-    // 변동계수(CV): 궁서체는 굵기 변화가 일정함 - CV가 너무 크면 삐뚤빼뚤
     const strokeCV = strokeMean > 0 ? strokeStd / strokeMean : 1;
 
     // 4단계: 수평/수직 투영 프로파일
@@ -1460,33 +1454,108 @@
       }
     }
 
-    // 행 분포: 글씨가 있는 행들의 간격 균일성
-    const activeRows = rowProj.map((v, i) => ({ v, i })).filter(r => r.v > width * 0.01);
-    const rowUniformity = computeUniformity(rowProj);
-    const colUniformity = computeUniformity(colProj);
+    // ★★★ 5단계(신규): 줄(라인) 검출 및 줄별 높이 편차 ★★★
+    // 가로 투영에서 "글씨 있는 줄"들을 찾아 각 줄의 y 범위(높이)를 구함
+    const rowMax = Math.max(...rowProj);
+    const lineThresh = rowMax * 0.15;
+    const lines = [];
+    let lineStart = -1;
+    for (let y = 0; y < height; y++) {
+      if (rowProj[y] > lineThresh) {
+        if (lineStart < 0) lineStart = y;
+      } else if (lineStart >= 0) {
+        if (y - lineStart >= 4) lines.push({ start: lineStart, end: y - 1, h: y - lineStart });
+        lineStart = -1;
+      }
+    }
+    if (lineStart >= 0) lines.push({ start: lineStart, end: height - 1, h: height - lineStart });
 
-    // 5단계: 글씨의 수직 강조 정도 (궁서체는 세로획이 두드러짐)
-    // 수직 런 길이의 평균 / 수평 런 길이의 평균
-    const vStrokeLens = [];
-    for (let x = 0; x < width; x++) {
-      let runLen = 0;
-      for (let y = 0; y < height; y++) {
-        if (binary[y * width + x]) {
-          runLen++;
-        } else if (runLen > 0) {
-          if (runLen >= 1 && runLen <= 40) vStrokeLens.push(runLen);
-          runLen = 0;
+    // 줄 높이의 편차: 줄 간 높이가 들쭉날쭉하면 감점
+    let lineHeightCV = 0.5;
+    if (lines.length >= 2) {
+      const hs = lines.map(l => l.h);
+      const hMean = hs.reduce((a, b) => a + b, 0) / hs.length;
+      const hVar = hs.reduce((s, v) => s + (v - hMean) ** 2, 0) / hs.length;
+      lineHeightCV = hMean > 0 ? Math.sqrt(hVar) / hMean : 0.5;
+    }
+
+    // ★★★ 6단계(신규): 줄 내 글자들의 y축 흔들림 ★★★
+    // 각 줄 안에서 글자 중심의 y 좌표가 얼마나 들쭉날쭉한지
+    // -> 못 쓴 글씨는 베이스라인이 흔들림
+    let baselineJitter = 0.5;
+    if (lines.length > 0) {
+      const jitters = [];
+      for (const line of lines) {
+        // 세로 투영으로 줄 안의 글자 컬럼 찾기
+        const inLineCols = new Array(width).fill(0);
+        for (let y = line.start; y <= line.end; y++) {
+          for (let x = 0; x < width; x++) {
+            if (binary[y * width + x]) inLineCols[x]++;
+          }
+        }
+        const colMaxInLine = Math.max(...inLineCols);
+        if (colMaxInLine === 0) continue;
+        const cThr = colMaxInLine * 0.2;
+        const charCenters = [];
+        let inChar = false, cStart = 0;
+        for (let x = 0; x < width; x++) {
+          if (inLineCols[x] > cThr && !inChar) { inChar = true; cStart = x; }
+          else if (inLineCols[x] <= cThr && inChar) {
+            // 글자 영역 (cStart ~ x-1)의 y중심 계산
+            let ySum = 0, yCnt = 0;
+            for (let yy = line.start; yy <= line.end; yy++) {
+              for (let xx = cStart; xx < x; xx++) {
+                if (binary[yy * width + xx]) { ySum += yy; yCnt++; }
+              }
+            }
+            if (yCnt > 0) charCenters.push(ySum / yCnt);
+            inChar = false;
+          }
+        }
+        if (charCenters.length >= 3) {
+          const cm = charCenters.reduce((a, b) => a + b, 0) / charCenters.length;
+          const cv = charCenters.reduce((s, v) => s + (v - cm) ** 2, 0) / charCenters.length;
+          jitters.push(Math.sqrt(cv) / line.h); // 줄 높이 대비 흔들림
         }
       }
-      if (runLen >= 1 && runLen <= 40) vStrokeLens.push(runLen);
+      if (jitters.length > 0) {
+        baselineJitter = jitters.reduce((a, b) => a + b, 0) / jitters.length;
+      }
     }
-    const vMean = vStrokeLens.length > 0
-      ? vStrokeLens.reduce((a, b) => a + b, 0) / vStrokeLens.length
-      : 1;
-    const verticalEmphasis = vMean / Math.max(strokeMean, 1);
-    // 궁서체는 세로획이 가로획보다 길어지는 경향 -> ratio가 1.1~1.8 정도
 
-    // 6단계: 기울기 추정 - 상/중/하 영역의 글씨 중심 수평 위치 차이
+    // ★★★ 7단계(신규): 글자 크기(폭) 편차 ★★★
+    // 같은 줄 안에서 글자들의 폭이 일정해야 함
+    let charWidthCV = 0.5;
+    if (lines.length > 0) {
+      const widths = [];
+      for (const line of lines) {
+        const inLineCols = new Array(width).fill(0);
+        for (let y = line.start; y <= line.end; y++) {
+          for (let x = 0; x < width; x++) {
+            if (binary[y * width + x]) inLineCols[x]++;
+          }
+        }
+        const colMaxInLine = Math.max(...inLineCols);
+        if (colMaxInLine === 0) continue;
+        const cThr = colMaxInLine * 0.2;
+        let inChar = false, cStart = 0;
+        for (let x = 0; x < width; x++) {
+          if (inLineCols[x] > cThr && !inChar) { inChar = true; cStart = x; }
+          else if (inLineCols[x] <= cThr && inChar) {
+            const w = x - cStart;
+            if (w >= 3 && w <= width * 0.2) widths.push(w);
+            inChar = false;
+          }
+        }
+      }
+      if (widths.length >= 3) {
+        const wMean = widths.reduce((a, b) => a + b, 0) / widths.length;
+        const wVar = widths.reduce((s, v) => s + (v - wMean) ** 2, 0) / widths.length;
+        charWidthCV = wMean > 0 ? Math.sqrt(wVar) / wMean : 0.5;
+      }
+    }
+
+    // 8단계: 전반적 기울기 (기존 유지)
     const third = Math.floor(height / 3);
     const centers = [];
     for (let region = 0; region < 3; region++) {
@@ -1504,62 +1573,113 @@
       centers.push(total > 0 ? xSum / total : width / 2);
     }
     const centerShift = Math.max(...centers) - Math.min(...centers);
-    const tiltPenalty = Math.min(1, centerShift / (width * 0.15)); // 0 = 정렬 좋음, 1 = 많이 기울어짐
+    const tiltPenalty = Math.min(1, centerShift / (width * 0.15));
 
-    // ============ 점수 산출 ============
-    // 각 지표를 0~1 범위로 정규화
+    // ============ 점수 산출 (새 로직) ============
 
-    // (a) 잉크 비율 적정성: 2~10% 구간에서 최고점
+    // (a) 잉크 비율: 너무 많으면 감점 강화 (종이가 글씨로 꽉 찼으면 지저분한 글씨)
     let inkScore;
-    if (inkRatio < 0.02) inkScore = inkRatio / 0.02;
-    else if (inkRatio <= 0.12) inkScore = 1.0;
-    else inkScore = Math.max(0, 1 - (inkRatio - 0.12) / 0.25);
+    if (inkRatio < 0.015) inkScore = inkRatio / 0.015 * 0.7;
+    else if (inkRatio <= 0.10) inkScore = 1.0;
+    else if (inkRatio <= 0.20) inkScore = 1.0 - (inkRatio - 0.10) * 2.5; // 10~20%: 1.0 → 0.75
+    else inkScore = Math.max(0, 0.75 - (inkRatio - 0.20) * 2.5); // 20%↑: 급격히 감점
 
-    // (b) 획 굵기 일관성 (궁서체는 일정한 굵기 유지)
-    // CV가 0.35~0.6 구간에서 궁서체에 가까움
+    // (b) 획 굵기 일관성 - 낮은 CV가 좋음 (기존은 거꾸로 되어있었음!)
+    // CV < 0.35: 매우 일관됨 (인쇄체/잘쓴 글씨)
+    // CV 0.35~0.55: 무난
+    // CV > 0.55: 불안정 (못 쓴 글씨)
     let strokeScore;
-    if (strokeCV < 0.3) strokeScore = 0.85; // 너무 균일한 건 인쇄체 같음
-    else if (strokeCV <= 0.7) strokeScore = 1.0 - Math.abs(strokeCV - 0.5) * 0.5;
-    else strokeScore = Math.max(0, 1 - (strokeCV - 0.7) * 1.2);
+    if (strokeCV < 0.30) strokeScore = 1.0;
+    else if (strokeCV < 0.50) strokeScore = 1.0 - (strokeCV - 0.30) * 1.5; // 0.30~0.50: 1.0 → 0.7
+    else if (strokeCV < 0.80) strokeScore = 0.7 - (strokeCV - 0.50) * 1.7; // 0.50~0.80: 0.7 → 0.19
+    else strokeScore = Math.max(0, 0.19 - (strokeCV - 0.80) * 0.5);
 
-    // (c) 자형 안정성 (투영의 피크가 규칙적으로 반복)
-    const shapeStability = (rowUniformity * 0.6 + colUniformity * 0.4);
+    // (c) 베이스라인 정렬 (신규 핵심) - 줄 안에서 글자들이 떠다니면 감점
+    // jitter < 0.08: 매우 정렬됨
+    // jitter 0.08~0.15: 보통
+    // jitter > 0.15: 흔들림 심함
+    let baselineScore;
+    if (baselineJitter < 0.08) baselineScore = 1.0;
+    else if (baselineJitter < 0.15) baselineScore = 1.0 - (baselineJitter - 0.08) * 5.7; // → 0.6
+    else if (baselineJitter < 0.25) baselineScore = 0.6 - (baselineJitter - 0.15) * 4.0; // → 0.2
+    else baselineScore = Math.max(0, 0.2 - (baselineJitter - 0.25) * 1.0);
 
-    // (d) 궁서 유사도 = 세로 강조 + 굵기 일관성 + 기울기 없음
-    let verticalScore;
-    if (verticalEmphasis < 0.9) verticalScore = verticalEmphasis / 0.9 * 0.6;
-    else if (verticalEmphasis <= 1.8) verticalScore = 1.0 - Math.abs(verticalEmphasis - 1.35) * 0.4;
-    else verticalScore = Math.max(0.3, 1 - (verticalEmphasis - 1.8) * 0.3);
+    // (d) 글자 크기 일관성 (신규 핵심)
+    let widthConsistencyScore;
+    if (charWidthCV < 0.25) widthConsistencyScore = 1.0;
+    else if (charWidthCV < 0.45) widthConsistencyScore = 1.0 - (charWidthCV - 0.25) * 2.5; // → 0.5
+    else if (charWidthCV < 0.70) widthConsistencyScore = 0.5 - (charWidthCV - 0.45) * 1.6; // → 0.1
+    else widthConsistencyScore = Math.max(0, 0.1 - (charWidthCV - 0.70) * 0.3);
 
-    const gungseoScore = (verticalScore * 0.55 + strokeScore * 0.25 + (1 - tiltPenalty) * 0.20);
+    // (e) 줄 높이 일관성
+    let lineHeightScore;
+    if (lineHeightCV < 0.15) lineHeightScore = 1.0;
+    else if (lineHeightCV < 0.35) lineHeightScore = 1.0 - (lineHeightCV - 0.15) * 2.5; // → 0.5
+    else lineHeightScore = Math.max(0.1, 0.5 - (lineHeightCV - 0.35) * 1.0);
 
-    // 세부 지표 값 (0~1)
-    const metricStroke = clamp01(strokeScore * 0.6 + (1 - tiltPenalty) * 0.4);
-    const metricStability = clamp01(shapeStability * 0.7 + inkScore * 0.3);
-    const metricGungseo = clamp01(gungseoScore);
+    // (f) 기울기 없음
+    const tiltScore = 1 - tiltPenalty;
 
-    // 최종 점수 (가중 평균 후 현실적 체감 점수로 매핑)
+    // (g) 자형 안정성 (투영 주기성)
+    const shapeStability = computeUniformity(rowProj) * 0.6 + computeUniformity(colProj) * 0.4;
+
+    // --- 세부 지표 집계 ---
+    // 획 균형 = 획 굵기 일관성 + 기울기
+    const metricStroke = clamp01(strokeScore * 0.55 + tiltScore * 0.45);
+
+    // 자형 안정 = 글자 폭 일관성 + 줄 높이 일관성 + 잉크 비율
+    const metricStability = clamp01(
+      widthConsistencyScore * 0.45 +
+      lineHeightScore * 0.30 +
+      inkScore * 0.25
+    );
+
+    // 정돈도 = 베이스라인 정렬 + 자형 안정성(주기) + 획 일관성
+    const metricTidy = clamp01(
+      baselineScore * 0.55 +
+      shapeStability * 0.25 +
+      strokeScore * 0.20
+    );
+
+    // --- 최종 점수 ---
+    // 가중평균 (정돈도에 가장 큰 비중)
     const raw = (
       metricStroke * 0.28 +
       metricStability * 0.30 +
-      metricGungseo * 0.42
+      metricTidy * 0.42
     );
-    // 감마 보정(제곱근) - 중상위 구간에서 점수가 더 후하게 나오도록
-    // raw 0.55 → 0.74로 상승, raw 0.75 → 0.87로 상승
-    const boosted = Math.pow(clamp01(raw), 0.65);
-    // 보정된 값 0.40~0.92 구간을 62~99점으로 매핑
-    // → 잘 쓴 글씨(raw 0.6~0.75)가 88~95점대로 나옴
-    const mapped = mapRange(boosted, 0.40, 0.92, 62, 99);
-    const finalScore = Math.round(clamp(mapped, 55, 100));
+
+    // 엄격한 선형 매핑: raw 0.30 → 30점, raw 0.90 → 98점
+    // 못 쓴 글씨(raw ~0.4)는 40점대, 잘 쓴 글씨(raw ~0.85)는 95점대
+    const mapped = mapRange(raw, 0.30, 0.90, 30, 98);
+
+    // ★ 하드 페널티: 특정 지표가 매우 낮으면 큰 감점
+    let hardPenalty = 0;
+    if (baselineScore < 0.4) hardPenalty += (0.4 - baselineScore) * 50;  // 줄 이탈
+    if (widthConsistencyScore < 0.4) hardPenalty += (0.4 - widthConsistencyScore) * 40;  // 글자 크기 들쭉날쭉
+    if (strokeScore < 0.3) hardPenalty += (0.3 - strokeScore) * 30;  // 획 굵기 불규칙
+    if (inkRatio > 0.20) hardPenalty += (inkRatio - 0.20) * 100;  // 종이 꽉 참
+
+    const finalScore = Math.round(clamp(mapped - hardPenalty, 10, 100));
 
     return {
       score: finalScore,
       metrics: {
         stroke: Math.round(metricStroke * 100),
         stability: Math.round(metricStability * 100),
-        gungseo: Math.round(metricGungseo * 100)
+        gungseo: Math.round(metricTidy * 100)
       },
-      debug: { inkRatio, strokeCV, verticalEmphasis, tiltPenalty }
+      debug: {
+        inkRatio: inkRatio.toFixed(3),
+        strokeCV: strokeCV.toFixed(3),
+        baselineJitter: baselineJitter.toFixed(3),
+        charWidthCV: charWidthCV.toFixed(3),
+        lineHeightCV: lineHeightCV.toFixed(3),
+        lines: lines.length,
+        tiltPenalty: tiltPenalty.toFixed(3),
+        raw: raw.toFixed(3),
+        hardPenalty: hardPenalty.toFixed(1)
+      }
     };
   }
 
@@ -1642,6 +1762,11 @@
       return;
     }
 
+    // 디버그 정보 (Safari에서는 설정→고급→웹 인스펙터로 볼 수 있음)
+    console.log('%c[평가 결과] 점수: ' + result.score, 'color:#c8362a;font-weight:bold;font-size:14px;');
+    console.table(result.debug);
+    console.log('지표:', result.metrics);
+
     displayScore(result);
   }
 
@@ -1706,16 +1831,23 @@
     if (score >= 70) return {
       label: '보통 · 연습 필요',
       title: '조금 더 연습해볼까요',
-      comment: '세로획을 곧게, 글자 크기를 고르게 써보세요',
+      comment: '획을 곧게, 글자 크기를 고르게 써보세요',
       color: '#b8924a',
       bg: 'rgba(184, 146, 74, 0.10)'
     };
-    return {
-      label: '분발 · 천천히',
-      title: '천천히 써보세요',
-      comment: '또박또박 정성스레 쓰면 달라져요',
-      color: '#5a5248',
+    if (score >= 50) return {
+      label: '부족 · 기초 연습',
+      title: '기초부터 다져봐요',
+      comment: '줄에 맞춰 또박또박 쓰는 연습이 필요해요',
+      color: '#8a7a68',
       bg: 'rgba(90, 82, 72, 0.10)'
+    };
+    return {
+      label: '많은 연습 필요',
+      title: '천천히 다시 써봐요',
+      comment: '글자 크기를 고르게, 줄을 맞춰 써보세요',
+      color: '#5a5248',
+      bg: 'rgba(90, 82, 72, 0.14)'
     };
   }
 
