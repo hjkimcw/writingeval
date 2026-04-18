@@ -884,7 +884,7 @@
         <span class="brand-mark">뽐</span>
         <div class="brand-text">
           <h1 class="brand-title">글뽐</h1>
-          <p class="brand-sub" id="guideDesc">내 글씨를 뽐내봐요! <span class="ver-tag">v26.04.18.1325</span></p>
+          <p class="brand-sub" id="guideDesc">내 필기, 나중에 읽을 수 있을까? <span class="ver-tag">v26.04.18.1430</span></p>
         </div>
       </div>
       <div class="header-actions">
@@ -919,7 +919,7 @@
     <!-- 간결한 가이드 바 -->
     <div class="guide-bar" id="guideMessage">
       <span class="guide-tag" id="guideTag">STEP 01</span>
-      <h2 class="guide-title" id="guideTitle">A4 용지를 프레임에 맞춰주세요</h2>
+      <h2 class="guide-title" id="guideTitle">노트 한 페이지를 비춰주세요</h2>
     </div>
 
     <!-- 카메라 뷰 영역 -->
@@ -986,7 +986,7 @@
             <div class="spinner-brush">筆</div>
           </div>
           <p class="analyzing-text" id="analyzingText">글씨를 분석하는 중…</p>
-          <p class="analyzing-sub" id="analyzingSub">AI가 글자를 하나씩 읽고 있어요</p>
+          <p class="analyzing-sub" id="analyzingSub">필기가 얼마나 읽히는지 확인 중…</p>
         </div>
 
         <!-- 캡처용 캔버스 (숨김) -->
@@ -999,7 +999,7 @@
       <!-- 왼쪽: 점수 -->
       <div class="score-main">
         <div class="score-label-wrap">
-          <span class="score-label">평가 점수</span>
+          <span class="score-label">가독성 점수</span>
           <span class="score-unit">/ 100</span>
         </div>
         <div class="score-value" id="scoreValue">—</div>
@@ -1009,15 +1009,15 @@
       <!-- 가운데: 세부 지표 -->
       <div class="metrics" id="metrics">
         <div class="metric">
-          <span class="metric-label">획 균형</span>
+          <span class="metric-label">선명도</span>
           <div class="metric-bar"><div class="metric-fill" id="m1" style="width:0%"></div></div>
         </div>
         <div class="metric">
-          <span class="metric-label">자형 안정</span>
+          <span class="metric-label">구조감</span>
           <div class="metric-bar"><div class="metric-fill" id="m2" style="width:0%"></div></div>
         </div>
         <div class="metric">
-          <span class="metric-label">정돈도</span>
+          <span class="metric-label">판독성</span>
           <div class="metric-bar"><div class="metric-fill" id="m3" style="width:0%"></div></div>
         </div>
       </div>
@@ -1059,7 +1059,7 @@
           <li><strong>카메라 켜기</strong>를 눌러 허용해주세요</li>
           <li>A4 용지가 가이드 프레임에 맞도록 조정해주세요</li>
           <li><strong>평가하기</strong>를 누르면 글씨를 분석합니다</li>
-          <li>명조체처럼 반듯하고 정돈된 글씨일수록 점수가 높아요</li>
+          <li>잘 읽히는 필기일수록 점수가 높아요 (흘려 써도 OK)</li>
         </ol>
         <button class="modal-close" id="modalClose">확인</button>
       </div>
@@ -1083,7 +1083,7 @@
           </svg>
         </div>
         <h3 class="modal-title" style="text-align:center;">평가 원리</h3>
-        <p class="modal-subdesc">AI가 글자를 읽어 3가지를 분석해요</p>
+        <p class="modal-subdesc">"나중에 이 필기를 읽을 수 있을까?"</p>
 
         <div class="principle-list">
           <div class="principle-item">
@@ -1095,8 +1095,8 @@
               </svg>
             </div>
             <div class="principle-text">
-              <strong>획 균형</strong>
-              <span>획의 굵기가 고르고 기울지 않았는지</span>
+              <strong>선명도</strong>
+              <span>각 글자가 또렷하게 보이는지</span>
             </div>
           </div>
           <div class="principle-item">
@@ -1109,8 +1109,8 @@
               </svg>
             </div>
             <div class="principle-text">
-              <strong>자형 안정</strong>
-              <span>글자 크기와 간격이 일정한지</span>
+              <strong>구조감</strong>
+              <span>줄 간격이 겹치지 않고 정돈되었는지</span>
             </div>
           </div>
           <div class="principle-item">
@@ -1121,13 +1121,13 @@
               </svg>
             </div>
             <div class="principle-text">
-              <strong>정돈도</strong>
-              <span>줄에 맞추어 반듯하게 쓰였는지</span>
+              <strong>판독성</strong>
+              <span>시간이 지나도 다시 읽을 수 있는지</span>
             </div>
           </div>
         </div>
 
-        <p class="principle-note">글자가 잘 읽히고 줄이 맞을수록 높은 점수를 받아요</p>
+        <p class="principle-note">대학생 필기 특성에 맞춰 평가해요. 흘려써도 읽히기만 하면 OK!</p>
 
         <button class="modal-close" id="principleClose">알겠어요</button>
       </div>
@@ -1514,68 +1514,90 @@
       }
     }
 
-    // ============ 점수 산출 ============
+    // ============ 가독성 중심 점수 산출 ============
 
-    // (a) OCR 신뢰도 점수 - 한글 필기체 기준으로 30%만 넘어도 합격선
+    // (a) OCR 신뢰도 → 선명도/판독성의 핵심
+    //    기계가 읽으면 사람도 읽음. 대학생 필기는 40~60% 평균적
     let confScore;
-    if (avgConfidence >= 65) confScore = 1.0;
-    else if (avgConfidence >= 45) confScore = 0.7 + (avgConfidence - 45) / 20 * 0.3; // 0.7 → 1.0
-    else if (avgConfidence >= 25) confScore = 0.4 + (avgConfidence - 25) / 20 * 0.3; // 0.4 → 0.7
-    else confScore = Math.max(0.2, avgConfidence / 25 * 0.4);
+    if (avgConfidence >= 60) confScore = 1.0;
+    else if (avgConfidence >= 40) confScore = 0.75 + (avgConfidence - 40) / 20 * 0.25; // 0.75 → 1.0
+    else if (avgConfidence >= 25) confScore = 0.5 + (avgConfidence - 25) / 15 * 0.25;  // 0.5 → 0.75
+    else if (avgConfidence >= 12) confScore = 0.3 + (avgConfidence - 12) / 13 * 0.2;   // 0.3 → 0.5
+    else confScore = Math.max(0.15, avgConfidence / 12 * 0.3);
 
-    // (b) 글자 높이 일관성 (CV 낮을수록 좋음)
+    // (b) 글자 높이 일관성 (매우 관대)
+    //    제목/본문 크기 차이 허용. 같은 줄 내에서만 너무 들쭉날쭉 안 하면 OK
     let heightScore;
-    if (heightCV < 0.25) heightScore = 1.0;
-    else if (heightCV < 0.45) heightScore = 1.0 - (heightCV - 0.25) * 2.5; // → 0.5
-    else heightScore = Math.max(0.2, 0.5 - (heightCV - 0.45) * 1.0);
+    if (heightCV < 0.40) heightScore = 1.0;
+    else if (heightCV < 0.65) heightScore = 1.0 - (heightCV - 0.40) * 1.6; // → 0.6
+    else heightScore = Math.max(0.4, 0.6 - (heightCV - 0.65) * 0.8);
 
-    // (c) 글자 폭 일관성
+    // (c) 글자 폭 일관성 (매우 관대)
+    //    한자/영어/기호 혼용 당연함. 크게 안 어긋나면 OK
     let widthScore;
-    if (widthCV < 0.30) widthScore = 1.0;
-    else if (widthCV < 0.55) widthScore = 1.0 - (widthCV - 0.30) * 2.0; // → 0.5
-    else widthScore = Math.max(0.3, 0.5 - (widthCV - 0.55) * 0.8);
+    if (widthCV < 0.45) widthScore = 1.0;
+    else if (widthCV < 0.70) widthScore = 1.0 - (widthCV - 0.45) * 1.6; // → 0.6
+    else widthScore = Math.max(0.4, 0.6 - (widthCV - 0.70) * 0.8);
 
-    // (d) 줄 정렬도
+    // (d) 줄 정렬도 - 줄 안에서 글자가 춤추면 읽기 힘듦
+    //    이건 좀 엄격하게 유지 (가독성에 직접 영향)
     let alignmentScore;
-    if (alignmentDev < 0.12) alignmentScore = 1.0;
-    else if (alignmentDev < 0.25) alignmentScore = 1.0 - (alignmentDev - 0.12) * 3.1; // → 0.6
-    else if (alignmentDev < 0.40) alignmentScore = 0.6 - (alignmentDev - 0.25) * 2.0; // → 0.3
-    else alignmentScore = Math.max(0.2, 0.3 - (alignmentDev - 0.40) * 0.3);
+    if (alignmentDev < 0.15) alignmentScore = 1.0;
+    else if (alignmentDev < 0.30) alignmentScore = 1.0 - (alignmentDev - 0.15) * 2.67; // → 0.6
+    else if (alignmentDev < 0.50) alignmentScore = 0.6 - (alignmentDev - 0.30) * 1.5; // → 0.3
+    else alignmentScore = Math.max(0.2, 0.3 - (alignmentDev - 0.50) * 0.3);
 
-    // (e) 줄 간격 일관성
+    // (e) 줄 간격 일관성 - 줄끼리 겹치면 읽기 어려움 (중요)
     let spacingScore;
-    if (lineSpacingCV < 0.20) spacingScore = 1.0;
-    else if (lineSpacingCV < 0.45) spacingScore = 1.0 - (lineSpacingCV - 0.20) * 2.0;
-    else spacingScore = Math.max(0.4, 0.5 - (lineSpacingCV - 0.45) * 0.5);
+    if (lineSpacingCV < 0.25) spacingScore = 1.0;
+    else if (lineSpacingCV < 0.50) spacingScore = 1.0 - (lineSpacingCV - 0.25) * 1.6; // → 0.6
+    else spacingScore = Math.max(0.4, 0.6 - (lineSpacingCV - 0.50) * 0.8);
 
-    // --- 세부 지표 집계 ---
-    const metricStroke = clamp01(confScore * 0.55 + alignmentScore * 0.45);
-    const metricStability = clamp01(widthScore * 0.45 + heightScore * 0.35 + spacingScore * 0.20);
-    const metricTidy = clamp01(alignmentScore * 0.50 + confScore * 0.30 + spacingScore * 0.20);
+    // (f) 단어 개수 충분도 - 너무 적으면 평가 신뢰도 낮음
+    const wordDensityScore = Math.min(1.0, words.length / 15);
 
-    // --- 최종 점수 ---
-    const raw = (
-      metricStroke * 0.28 +
-      metricStability * 0.30 +
-      metricTidy * 0.42
+    // --- 세부 지표 집계 (가독성 관점) ---
+
+    // 선명도 = OCR이 글자를 또렷하게 읽었는지
+    const metricStroke = clamp01(confScore * 0.80 + wordDensityScore * 0.20);
+
+    // 구조감 = 줄과 간격이 정돈되었는지
+    const metricStability = clamp01(
+      spacingScore * 0.45 +
+      alignmentScore * 0.35 +
+      heightScore * 0.20
     );
 
-    // 3구간 매핑 (기존과 동일, 후한 체계)
+    // 판독성 (가장 중요) = 실제로 읽을 수 있는지
+    const metricTidy = clamp01(
+      confScore * 0.55 +      // 기계 인식 = 가독성의 핵심
+      alignmentScore * 0.25 + // 줄 정렬
+      widthScore * 0.20       // 글자 겹침 없음
+    );
+
+    // --- 최종 점수: 판독성에 더 큰 비중 ---
+    const raw = (
+      metricStroke * 0.25 +
+      metricStability * 0.25 +
+      metricTidy * 0.50      // 판독성이 절반!
+    );
+
+    // 3구간 매핑
     let mapped;
     if (raw < 0.50) {
-      mapped = mapRange(raw, 0.25, 0.50, 35, 60);
+      mapped = mapRange(raw, 0.25, 0.50, 40, 65);
     } else if (raw < 0.75) {
-      mapped = mapRange(raw, 0.50, 0.75, 60, 88);
+      mapped = mapRange(raw, 0.50, 0.75, 65, 88);
     } else {
       mapped = mapRange(raw, 0.75, 0.95, 88, 98);
     }
 
-    // 하드 페널티 - OCR이 글자를 거의 못 읽었을 때만
+    // 하드 페널티 - OCR이 거의 못 읽을 때 (진짜 암호 수준)
     let hardPenalty = 0;
-    if (avgConfidence < 20) hardPenalty += (20 - avgConfidence) * 0.8;
-    if (alignmentScore < 0.3) hardPenalty += (0.3 - alignmentScore) * 20;
+    if (avgConfidence < 15) hardPenalty += (15 - avgConfidence) * 0.6;
+    if (alignmentScore < 0.3 && spacingScore < 0.5) hardPenalty += 8; // 줄 엉킴
 
-    const finalScore = Math.round(clamp(mapped - hardPenalty, 25, 100));
+    const finalScore = Math.round(clamp(mapped - hardPenalty, 30, 100));
 
     return {
       score: finalScore,
@@ -2086,44 +2108,44 @@
 
   function getRank(score) {
     if (score >= 95) return {
-      label: '최상 · 매우 바름',
-      title: '아주 잘 썼어요!',
-      comment: '매우 정돈되고 반듯한 글씨예요',
+      label: '완벽 가독 · A+',
+      title: '누가 봐도 읽혀요!',
+      comment: '시험 때 시간 절약 1등급 필기예요',
       color: '#9a2419',
       bg: 'rgba(200, 54, 42, 0.14)'
     };
-    if (score >= 88) return {
-      label: '우수 · 바른 글씨',
-      title: '훌륭한 글씨예요',
-      comment: '획이 안정적이고 균형이 좋아요',
+    if (score >= 85) return {
+      label: '잘 읽힘 · A',
+      title: '훌륭한 필기예요',
+      comment: '본인은 물론 친구도 빌려봐도 문제없어요',
       color: '#9a2419',
       bg: 'rgba(200, 54, 42, 0.10)'
     };
-    if (score >= 80) return {
-      label: '양호 · 괜찮은 글씨',
-      title: '잘 썼어요',
-      comment: '조금만 더 정성을 들이면 더 좋아져요',
+    if (score >= 75) return {
+      label: '본인만 OK · B',
+      title: '본인 복습용으론 충분',
+      comment: '남한테 보여주긴 살짝 부끄러운 수준',
       color: '#b8924a',
       bg: 'rgba(184, 146, 74, 0.14)'
     };
-    if (score >= 70) return {
-      label: '보통 · 연습 필요',
-      title: '무난한 글씨예요',
-      comment: '획을 곧게, 글자 크기를 고르게 써보세요',
+    if (score >= 65) return {
+      label: '흐릿함 · C',
+      title: '시간 지나면 헷갈릴 듯',
+      comment: '시험 직전에 본인도 해독하기 바빠요',
       color: '#b8924a',
       bg: 'rgba(184, 146, 74, 0.10)'
     };
     if (score >= 55) return {
-      label: '연습 · 조금 더',
-      title: '조금 더 연습해볼까요',
-      comment: '줄에 맞춰 또박또박 쓰면 훨씬 좋아져요',
+      label: '암호 수준 · D',
+      title: '해독이 필요해요',
+      comment: '교수님 필체보다 어려울 수 있어요',
       color: '#8a7a68',
       bg: 'rgba(90, 82, 72, 0.10)'
     };
     return {
-      label: '연습 필요',
-      title: '천천히 다시 써봐요',
-      comment: '글자 크기를 고르게, 줄을 맞춰 써보세요',
+      label: '미래의 나에게 · F',
+      title: '미안합니다…',
+      comment: '시험 전날 이 필기 보며 후회하지 말아요',
       color: '#5a5248',
       bg: 'rgba(90, 82, 72, 0.14)'
     };
@@ -2158,7 +2180,7 @@
     if (state.cameraOn) {
       updateGuide('STEP 02', 'A4 용지를 프레임에 맞춰주세요', '수직으로 선명하게 비춰주세요');
     } else {
-      updateGuide('STEP 01', 'A4 용지를 프레임에 맞춰주세요', '반듯한 글씨일수록 높은 점수를 받아요');
+      updateGuide('STEP 01', '노트 한 페이지를 비춰주세요', '얼마나 읽기 좋은 필기인지 평가해볼게요');
     }
   }
 
