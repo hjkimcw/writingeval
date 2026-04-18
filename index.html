@@ -379,6 +379,12 @@
     font-weight: 500;
     letter-spacing: 0.05em;
   }
+  .analyzing-sub {
+    font-size: 12px;
+    color: rgba(250, 247, 241, 0.7);
+    margin-top: 6px;
+    letter-spacing: -0.01em;
+  }
 
   /* ============ 점수 패널 ============ */
   .score-panel {
@@ -840,6 +846,9 @@
 </style>
 
   <title>글뽐 · 글씨 뽐내기</title>
+
+  <!-- Tesseract.js OCR - 브라우저 내 한글 글자 인식 -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
 
@@ -960,7 +969,8 @@
           <div class="spinner">
             <div class="spinner-brush">筆</div>
           </div>
-          <p class="analyzing-text">글씨를 분석하는 중…</p>
+          <p class="analyzing-text" id="analyzingText">글씨를 분석하는 중…</p>
+          <p class="analyzing-sub" id="analyzingSub">AI가 글자를 하나씩 읽고 있어요</p>
         </div>
 
         <!-- 캡처용 캔버스 (숨김) -->
@@ -1072,7 +1082,7 @@
           </svg>
         </div>
         <h3 class="modal-title" style="text-align:center;">평가 원리</h3>
-        <p class="modal-subdesc">명조체를 기준으로 3가지를 분석해요</p>
+        <p class="modal-subdesc">AI가 글자를 읽어 3가지를 분석해요</p>
 
         <div class="principle-list">
           <div class="principle-item">
@@ -1116,7 +1126,7 @@
           </div>
         </div>
 
-        <p class="principle-note">명조체는 가로획은 얇고 세로획은 굵은, 정돈된 한글 활자체예요</p>
+        <p class="principle-note">글자가 잘 읽히고 줄이 맞을수록 높은 점수를 받아요</p>
 
         <button class="modal-close" id="principleClose">알겠어요</button>
       </div>
@@ -1273,6 +1283,9 @@
       el.flipBtn.disabled = false;
 
       updateGuide('STEP 02', 'A4 용지를 프레임에 맞춰주세요', '수직으로 선명하게 비춰주세요');
+
+      // OCR 모델 백그라운드 로드 (첫 평가 시 지연 최소화)
+      prefetchOCR();
     } catch (err) {
       console.error('[카메라 오류]', err.name, err.message);
       handleCameraError(err, diag);
@@ -1389,7 +1402,212 @@
     return ctx.getImageData(0, 0, targetW, targetH);
   }
 
-  // ============ 글씨 분석 알고리즘 ============
+  // ============ OCR 기반 글씨 분석 ============
+  /**
+   * Tesseract OCR 결과에서 단어 경계 박스를 추출하여
+   * 글씨의 정돈도, 크기 일관성, 줄 정렬도를 정확히 평가
+   */
+  async function analyzeWithOCR(imgData) {
+    // canvas에 이미지 데이터를 그려서 OCR에 전달
+    const c = document.createElement('canvas');
+    c.width = imgData.width;
+    c.height = imgData.height;
+    const ctx = c.getContext('2d');
+    ctx.putImageData(imgData, 0, 0);
+
+    console.log('[OCR] 이미지 분석 시작...');
+    const t0 = performance.now();
+    const { data } = await ocrWorker.recognize(c, {}, { blocks: true });
+    const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+    console.log(`[OCR] 완료 (${elapsed}초)`);
+
+    // 단어 단위 박스 수집 (Tesseract가 한글을 단어로 묶어서 줌)
+    const words = [];
+    if (data.blocks) {
+      for (const block of data.blocks) {
+        for (const para of block.paragraphs || []) {
+          for (const line of para.lines || []) {
+            for (const word of line.words || []) {
+              if (word.bbox && word.text && word.text.trim().length > 0) {
+                words.push({
+                  text: word.text,
+                  bbox: word.bbox,
+                  confidence: word.confidence || 0,
+                  lineY: (line.bbox.y0 + line.bbox.y1) / 2
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    console.log(`[OCR] 인식된 단어: ${words.length}개, 평균 신뢰도: ${
+      words.length > 0 ? (words.reduce((s, w) => s + w.confidence, 0) / words.length).toFixed(1) : 0
+    }%`);
+
+    // OCR이 글자를 거의 못 읽으면 픽셀 분석으로 fallback
+    if (words.length < 3) {
+      console.warn('[OCR] 인식 단어 부족 → 픽셀 분석으로 전환');
+      const fallback = analyzeHandwriting(imgData);
+      if (fallback.score !== null) {
+        fallback.debug = { ...fallback.debug, ocrWords: words.length, mode: 'fallback' };
+      }
+      return fallback;
+    }
+
+    // ============ OCR 박스 기반 지표 계산 ============
+
+    // 1. OCR 신뢰도: 글자가 잘 읽힐수록 정돈된 글씨
+    //    한글 필기체는 보통 40~80% 사이. 60% 이상이면 잘 쓴 편.
+    const avgConfidence = words.reduce((s, w) => s + w.confidence, 0) / words.length;
+
+    // 2. 글자 높이 일관성
+    const heights = words.map(w => w.bbox.y1 - w.bbox.y0).filter(h => h > 0);
+    const heightMean = heights.reduce((a, b) => a + b, 0) / heights.length;
+    const heightVar = heights.reduce((s, h) => s + (h - heightMean) ** 2, 0) / heights.length;
+    const heightCV = heightMean > 0 ? Math.sqrt(heightVar) / heightMean : 1;
+
+    // 3. 글자 폭 일관성 (한 글자당 평균 폭)
+    const widths = words.map(w => {
+      const wChars = Math.max(1, w.text.length);
+      return (w.bbox.x1 - w.bbox.x0) / wChars;
+    }).filter(w => w > 0);
+    const widthMean = widths.reduce((a, b) => a + b, 0) / widths.length;
+    const widthVar = widths.reduce((s, w) => s + (w - widthMean) ** 2, 0) / widths.length;
+    const widthCV = widthMean > 0 ? Math.sqrt(widthVar) / widthMean : 1;
+
+    // 4. 줄 정렬도 - 같은 줄 단어들의 y 중심이 얼마나 일치하는지
+    //    lineY로 묶은 다음 각 줄 안에서 y0 편차 측정
+    const lineBuckets = {};
+    for (const w of words) {
+      // 같은 줄 간주: y 중심이 글자 평균 높이의 70% 이내
+      const bucketKey = Math.round(w.lineY / (heightMean * 0.7));
+      if (!lineBuckets[bucketKey]) lineBuckets[bucketKey] = [];
+      lineBuckets[bucketKey].push(w);
+    }
+    const lines = Object.values(lineBuckets);
+
+    // 각 줄 안에서 글자 top(y0) 편차 계산
+    let alignmentSum = 0, alignmentCount = 0;
+    for (const line of lines) {
+      if (line.length < 2) continue;
+      const tops = line.map(w => w.bbox.y0);
+      const tMean = tops.reduce((a, b) => a + b, 0) / tops.length;
+      const tVar = tops.reduce((s, t) => s + (t - tMean) ** 2, 0) / tops.length;
+      // 정규화: 줄 내 단어 높이 평균으로 나눔
+      const lineHeights = line.map(w => w.bbox.y1 - w.bbox.y0);
+      const lhMean = lineHeights.reduce((a, b) => a + b, 0) / lineHeights.length;
+      if (lhMean > 0) {
+        alignmentSum += Math.sqrt(tVar) / lhMean;
+        alignmentCount++;
+      }
+    }
+    const alignmentDev = alignmentCount > 0 ? alignmentSum / alignmentCount : 0.1;
+
+    // 5. 줄 간격 일관성
+    let lineSpacingCV = 0.2;
+    if (lines.length >= 2) {
+      const lineYs = lines.map(l => {
+        const ys = l.map(w => w.lineY);
+        return ys.reduce((a, b) => a + b, 0) / ys.length;
+      }).sort((a, b) => a - b);
+      const spacings = [];
+      for (let i = 1; i < lineYs.length; i++) spacings.push(lineYs[i] - lineYs[i - 1]);
+      if (spacings.length > 0) {
+        const sMean = spacings.reduce((a, b) => a + b, 0) / spacings.length;
+        const sVar = spacings.reduce((s, v) => s + (v - sMean) ** 2, 0) / spacings.length;
+        lineSpacingCV = sMean > 0 ? Math.sqrt(sVar) / sMean : 0.2;
+      }
+    }
+
+    // ============ 점수 산출 ============
+
+    // (a) OCR 신뢰도 점수 - 한글 필기체 기준으로 30%만 넘어도 합격선
+    let confScore;
+    if (avgConfidence >= 65) confScore = 1.0;
+    else if (avgConfidence >= 45) confScore = 0.7 + (avgConfidence - 45) / 20 * 0.3; // 0.7 → 1.0
+    else if (avgConfidence >= 25) confScore = 0.4 + (avgConfidence - 25) / 20 * 0.3; // 0.4 → 0.7
+    else confScore = Math.max(0.2, avgConfidence / 25 * 0.4);
+
+    // (b) 글자 높이 일관성 (CV 낮을수록 좋음)
+    let heightScore;
+    if (heightCV < 0.25) heightScore = 1.0;
+    else if (heightCV < 0.45) heightScore = 1.0 - (heightCV - 0.25) * 2.5; // → 0.5
+    else heightScore = Math.max(0.2, 0.5 - (heightCV - 0.45) * 1.0);
+
+    // (c) 글자 폭 일관성
+    let widthScore;
+    if (widthCV < 0.30) widthScore = 1.0;
+    else if (widthCV < 0.55) widthScore = 1.0 - (widthCV - 0.30) * 2.0; // → 0.5
+    else widthScore = Math.max(0.3, 0.5 - (widthCV - 0.55) * 0.8);
+
+    // (d) 줄 정렬도
+    let alignmentScore;
+    if (alignmentDev < 0.12) alignmentScore = 1.0;
+    else if (alignmentDev < 0.25) alignmentScore = 1.0 - (alignmentDev - 0.12) * 3.1; // → 0.6
+    else if (alignmentDev < 0.40) alignmentScore = 0.6 - (alignmentDev - 0.25) * 2.0; // → 0.3
+    else alignmentScore = Math.max(0.2, 0.3 - (alignmentDev - 0.40) * 0.3);
+
+    // (e) 줄 간격 일관성
+    let spacingScore;
+    if (lineSpacingCV < 0.20) spacingScore = 1.0;
+    else if (lineSpacingCV < 0.45) spacingScore = 1.0 - (lineSpacingCV - 0.20) * 2.0;
+    else spacingScore = Math.max(0.4, 0.5 - (lineSpacingCV - 0.45) * 0.5);
+
+    // --- 세부 지표 집계 ---
+    const metricStroke = clamp01(confScore * 0.55 + alignmentScore * 0.45);
+    const metricStability = clamp01(widthScore * 0.45 + heightScore * 0.35 + spacingScore * 0.20);
+    const metricTidy = clamp01(alignmentScore * 0.50 + confScore * 0.30 + spacingScore * 0.20);
+
+    // --- 최종 점수 ---
+    const raw = (
+      metricStroke * 0.28 +
+      metricStability * 0.30 +
+      metricTidy * 0.42
+    );
+
+    // 3구간 매핑 (기존과 동일, 후한 체계)
+    let mapped;
+    if (raw < 0.50) {
+      mapped = mapRange(raw, 0.25, 0.50, 35, 60);
+    } else if (raw < 0.75) {
+      mapped = mapRange(raw, 0.50, 0.75, 60, 88);
+    } else {
+      mapped = mapRange(raw, 0.75, 0.95, 88, 98);
+    }
+
+    // 하드 페널티 - OCR이 글자를 거의 못 읽었을 때만
+    let hardPenalty = 0;
+    if (avgConfidence < 20) hardPenalty += (20 - avgConfidence) * 0.8;
+    if (alignmentScore < 0.3) hardPenalty += (0.3 - alignmentScore) * 20;
+
+    const finalScore = Math.round(clamp(mapped - hardPenalty, 25, 100));
+
+    return {
+      score: finalScore,
+      metrics: {
+        stroke: Math.round(metricStroke * 100),
+        stability: Math.round(metricStability * 100),
+        tidy: Math.round(metricTidy * 100)
+      },
+      debug: {
+        mode: 'OCR',
+        ocrWords: words.length,
+        avgConfidence: avgConfidence.toFixed(1) + '%',
+        heightCV: heightCV.toFixed(3),
+        widthCV: widthCV.toFixed(3),
+        alignmentDev: alignmentDev.toFixed(3),
+        lineSpacingCV: lineSpacingCV.toFixed(3),
+        lines: lines.length,
+        raw: raw.toFixed(3),
+        hardPenalty: hardPenalty.toFixed(1),
+        elapsed: elapsed + 's'
+      }
+    };
+  }
+
+  // ============ 글씨 분석 알고리즘 (픽셀 기반 fallback) ============
   /**
    * 바른 글씨(명조체) 평가 방법론:
    * 1. 이미지를 그레이스케일로 변환 후 적응적 이진화로 글씨 추출
@@ -1738,6 +1956,42 @@
   }
 
   // ============ 평가 실행 ============
+  // ============ Tesseract OCR Worker ============
+  let ocrWorker = null;
+  let ocrReady = false;
+  let ocrLoading = false;
+
+  async function initOCR() {
+    if (ocrReady || ocrLoading) return;
+    if (typeof Tesseract === 'undefined') {
+      console.warn('Tesseract.js 미로드 - 픽셀 분석 모드로 동작');
+      return;
+    }
+    ocrLoading = true;
+    try {
+      console.log('[OCR] 한글 언어팩 로딩 중…');
+      ocrWorker = await Tesseract.createWorker('kor', 1, {
+        logger: m => {
+          if (m.status === 'loading language traineddata') {
+            console.log(`[OCR] 언어팩: ${Math.round((m.progress || 0) * 100)}%`);
+          }
+        }
+      });
+      ocrReady = true;
+      console.log('[OCR] 준비 완료');
+    } catch (err) {
+      console.error('[OCR] 초기화 실패:', err);
+      ocrReady = false;
+    } finally {
+      ocrLoading = false;
+    }
+  }
+
+  // 카메라 켜질 때 백그라운드로 OCR 모델 미리 로드
+  function prefetchOCR() {
+    setTimeout(initOCR, 500); // 0.5초 후 백그라운드 로드
+  }
+
   async function runEvaluation() {
     if (!state.cameraOn || state.analyzing) return;
 
@@ -1747,10 +2001,10 @@
     el.scanLine.classList.add('active');
     el.analyzing.classList.add('active');
 
-    updateGuide('STEP 03', '글씨를 분석하는 중…', '잠시만 기다려주세요');
+    updateGuide('STEP 03', '글씨를 분석하는 중…', 'AI가 글자를 읽고 있어요');
 
-    // 스캔 애니메이션을 위해 짧은 지연
-    await sleep(1600);
+    // 스캔 애니메이션 시간 확보
+    await sleep(1200);
 
     const imgData = captureFrame();
     if (!imgData) {
@@ -1759,14 +2013,33 @@
       return;
     }
 
+    // OCR이 준비 안됐으면 로딩
+    if (!ocrReady && !ocrLoading) {
+      updateGuide('STEP 03', '처음에는 조금 기다려주세요…', '한글 인식 모델을 불러오는 중');
+      await initOCR();
+    }
+    // 이미 로딩 중이면 완료 대기
+    while (ocrLoading) {
+      await sleep(300);
+    }
+
     let result;
     try {
-      result = analyzeHandwriting(imgData);
+      if (ocrReady && ocrWorker) {
+        result = await analyzeWithOCR(imgData);
+      } else {
+        console.warn('[평가] OCR 미사용 - 픽셀 분석만 실행');
+        result = analyzeHandwriting(imgData);
+      }
     } catch (e) {
-      console.error(e);
-      finishEvaluation();
-      toast('분석 중 오류가 발생했어요');
-      return;
+      console.error('[평가 오류]', e);
+      try {
+        result = analyzeHandwriting(imgData);
+      } catch (e2) {
+        finishEvaluation();
+        toast('분석 중 오류가 발생했어요');
+        return;
+      }
     }
 
     finishEvaluation();
@@ -1777,7 +2050,6 @@
       return;
     }
 
-    // 디버그 정보 (Safari에서는 설정→고급→웹 인스펙터로 볼 수 있음)
     console.log('%c[평가 결과] 점수: ' + result.score, 'color:#c8362a;font-weight:bold;font-size:14px;');
     console.table(result.debug);
     console.log('지표:', result.metrics);
