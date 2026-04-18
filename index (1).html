@@ -1,0 +1,1810 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+  /* ============ 리셋 & 기본 ============ */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    /* 먹색 팔레트 - 한국 전통의 먹과 한지 */
+    --ink-900: #0f0e0d;
+    --ink-800: #1a1816;
+    --ink-700: #2a2622;
+    --ink-600: #3d3832;
+    --ink-500: #5a5248;
+    --paper-50: #faf7f1;
+    --paper-100: #f2ede2;
+    --paper-200: #e8dfcc;
+    --paper-300: #d4c5a9;
+
+    /* 주묵(朱墨) 포인트 컬러 */
+    --vermilion: #c8362a;
+    --vermilion-soft: #e85d4e;
+    --vermilion-deep: #9a2419;
+
+    /* 금니(金泥) 느낌의 포인트 */
+    --gold: #b8924a;
+    --gold-soft: #d4b26a;
+
+    /* 기능 컬러 */
+    --success: #2f7d4e;
+    --success-soft: #5ba37a;
+
+    /* 폰트 */
+    --font-display: 'Nanum Myeongjo', 'Gowun Batang', serif;
+    --font-body: 'Noto Sans KR', system-ui, -apple-system, sans-serif;
+
+    /* 공간감 */
+    --radius-sm: 12px;
+    --radius-md: 18px;
+    --radius-lg: 28px;
+    --radius-xl: 36px;
+
+    /* 그림자 */
+    --shadow-sm: 0 2px 8px rgba(15, 14, 13, 0.06);
+    --shadow-md: 0 10px 30px rgba(15, 14, 13, 0.08);
+    --shadow-lg: 0 20px 60px rgba(15, 14, 13, 0.12);
+    --shadow-ink: 0 8px 24px rgba(200, 54, 42, 0.25);
+  }
+
+  html, body {
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: var(--paper-50);
+    color: var(--ink-800);
+    font-family: var(--font-body);
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    overscroll-behavior: none;
+  }
+
+  button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  button:disabled { cursor: not-allowed; opacity: 0.4; }
+
+  /* ============ 배경 장식 ============ */
+  .ink-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .ink-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.25;
+    animation: float 14s ease-in-out infinite;
+  }
+  .blob-1 {
+    top: -10%;
+    right: -15%;
+    width: 420px; height: 420px;
+    background: radial-gradient(circle, var(--vermilion), transparent 70%);
+  }
+  .blob-2 {
+    bottom: -20%;
+    left: -20%;
+    width: 520px; height: 520px;
+    background: radial-gradient(circle, var(--gold-soft), transparent 70%);
+    animation-delay: -7s;
+  }
+  @keyframes float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(20px, -30px) scale(1.08); }
+  }
+  .paper-grain {
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 25% 30%, rgba(15,14,13,0.02) 1px, transparent 1px),
+      radial-gradient(circle at 75% 70%, rgba(15,14,13,0.02) 1px, transparent 1px);
+    background-size: 32px 32px, 48px 48px;
+    mix-blend-mode: multiply;
+  }
+
+  /* ============ 앱 컨테이너 ============ */
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 12px 14px 16px;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* ============ 헤더 (압축) ============ */
+  .app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2px 0;
+    gap: 10px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
+  .brand-text { min-width: 0; overflow: hidden; }
+  .header-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .brand-mark {
+    width: 42px; height: 42px;
+    display: grid; place-items: center;
+    background: var(--ink-900);
+    color: var(--paper-50);
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    border-radius: 11px;
+    box-shadow:
+      var(--shadow-md),
+      inset 0 0 0 1px rgba(255,255,255,0.05);
+    position: relative;
+    flex-shrink: 0;
+  }
+  .brand-mark::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border: 1px solid rgba(250, 247, 241, 0.15);
+    border-radius: 9px;
+    pointer-events: none;
+  }
+  .brand-title {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--ink-900);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .brand-sub {
+    font-size: 11.5px;
+    color: var(--ink-500);
+    letter-spacing: -0.005em;
+    font-weight: 400;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .icon-btn {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    color: var(--ink-600);
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(8px);
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .icon-btn:hover { background: #fff; color: var(--ink-900); transform: scale(1.05); }
+  .icon-btn:active { transform: scale(0.95); }
+
+  /* ============ 안내 바 (압축) ============ */
+  .guide-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(8px);
+    border-radius: 12px;
+    border: 1px solid rgba(15, 14, 13, 0.05);
+  }
+  .guide-tag {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--vermilion);
+    padding: 3px 8px;
+    background: rgba(200, 54, 42, 0.1);
+    border-radius: 4px;
+    flex-shrink: 0;
+    font-family: var(--font-body);
+  }
+  .guide-title {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--ink-900);
+    letter-spacing: -0.01em;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ============ 카메라 뷰 영역 ============ */
+  .viewport-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+  }
+  .viewport {
+    position: relative;
+    width: 100%;
+    flex: 1;
+    min-height: 220px;
+    background: var(--ink-900);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+  }
+
+  #video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+    background: var(--ink-900);
+  }
+  #video.active { display: block; }
+
+  /* 초기 안내 플레이스홀더 */
+  .placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    color: var(--paper-200);
+    background:
+      radial-gradient(ellipse at center, var(--ink-700), var(--ink-900));
+  }
+  .placeholder.hidden { display: none; }
+  .placeholder-icon {
+    width: 160px; height: 160px;
+    color: var(--paper-100);
+    opacity: 0.85;
+    animation: pulse 2.8s ease-in-out infinite;
+  }
+  .placeholder-icon svg { width: 100%; height: 100%; }
+  .placeholder-text {
+    font-size: 17px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--paper-100);
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.85; }
+    50% { transform: scale(1.06) rotate(-2deg); opacity: 1; }
+  }
+
+  /* A4 가이드 프레임 */
+  .frame-guide {
+    position: absolute;
+    inset: 8%;
+    pointer-events: none;
+    display: none;
+  }
+  .frame-guide.active { display: block; }
+  .corner {
+    position: absolute;
+    width: 32px; height: 32px;
+    border: 3px solid var(--vermilion-soft);
+  }
+  .corner.tl { top: 0; left: 0; border-right: none; border-bottom: none; border-radius: 6px 0 0 0; }
+  .corner.tr { top: 0; right: 0; border-left: none; border-bottom: none; border-radius: 0 6px 0 0; }
+  .corner.bl { bottom: 0; left: 0; border-right: none; border-top: none; border-radius: 0 0 0 6px; }
+  .corner.br { bottom: 0; right: 0; border-left: none; border-top: none; border-radius: 0 0 6px 0; }
+
+  .frame-label {
+    position: absolute;
+    top: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--vermilion-soft);
+    background: rgba(15,14,13,0.6);
+    padding: 4px 10px;
+    border-radius: 4px;
+    backdrop-filter: blur(4px);
+  }
+
+  .scan-line {
+    position: absolute;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--vermilion-soft), transparent);
+    box-shadow: 0 0 12px var(--vermilion-soft);
+    top: 0;
+    display: none;
+  }
+  .scan-line.active {
+    display: block;
+    animation: scan 1.8s ease-in-out infinite;
+  }
+  @keyframes scan {
+    0% { top: 0; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+  }
+
+  /* 분석중 오버레이 */
+  .analyzing {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    background: rgba(15, 14, 13, 0.85);
+    backdrop-filter: blur(8px);
+    color: var(--paper-50);
+    z-index: 10;
+  }
+  .analyzing.active { display: flex; }
+  .spinner {
+    width: 80px; height: 80px;
+    border: 3px solid rgba(250, 247, 241, 0.15);
+    border-top-color: var(--vermilion-soft);
+    border-radius: 50%;
+    animation: spin 1.2s linear infinite;
+    position: relative;
+    display: grid; place-items: center;
+  }
+  .spinner-brush {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--paper-50);
+    animation: spin-reverse 1.2s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes spin-reverse { to { transform: rotate(-360deg); } }
+  .analyzing-text {
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+  }
+
+  /* ============ 점수 패널 ============ */
+  .score-panel {
+    background: linear-gradient(145deg, #fff 0%, var(--paper-50) 100%);
+    border-radius: 18px;
+    padding: 14px 16px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(15, 14, 13, 0.04);
+    position: relative;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 16px;
+    align-items: center;
+  }
+  .score-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--vermilion), var(--gold), var(--vermilion));
+  }
+
+  .score-main {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+  }
+  .score-label-wrap {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 0;
+  }
+  .score-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-500);
+    letter-spacing: 0.04em;
+  }
+  .score-unit {
+    font-size: 10px;
+    color: var(--ink-500);
+    opacity: 0.6;
+  }
+  .score-value {
+    font-family: var(--font-display);
+    font-size: 52px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--ink-900);
+    letter-spacing: -0.04em;
+    display: flex;
+    align-items: baseline;
+    margin-top: 2px;
+  }
+  .score-value.animating {
+    background: linear-gradient(135deg, var(--vermilion-deep), var(--vermilion));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .score-rank {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--vermilion);
+    margin-top: 6px;
+    padding: 3px 8px;
+    background: rgba(200, 54, 42, 0.08);
+    border-radius: 5px;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+  }
+  .score-rank.waiting {
+    color: var(--ink-500);
+    background: rgba(15, 14, 13, 0.04);
+    font-weight: 500;
+  }
+
+  /* 세부 지표 (압축) */
+  .metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-left: 14px;
+    border-left: 1px dashed rgba(15, 14, 13, 0.1);
+    min-width: 0;
+  }
+  .metric {
+    display: grid;
+    grid-template-columns: 58px 1fr;
+    gap: 8px;
+    align-items: center;
+  }
+  .metric-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-600);
+    letter-spacing: -0.01em;
+  }
+  .metric-bar {
+    height: 5px;
+    background: rgba(15, 14, 13, 0.06);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .metric-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--ink-700), var(--vermilion));
+    border-radius: 3px;
+    width: 0%;
+    transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* ============ 컨트롤 버튼 ============ */
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr 1fr;
+    gap: 8px;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .ctrl-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 10px;
+    border-radius: 14px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    letter-spacing: -0.01em;
+  }
+  .ctrl-btn svg { width: 24px; height: 24px; }
+
+  .ctrl-secondary {
+    background: rgba(255, 255, 255, 0.8);
+    color: var(--ink-700);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(15, 14, 13, 0.06);
+  }
+  .ctrl-secondary:not(:disabled):hover {
+    background: #fff;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .ctrl-primary {
+    background: var(--ink-900);
+    color: var(--paper-50);
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+  }
+  .ctrl-primary.ready {
+    background: linear-gradient(135deg, var(--vermilion-deep), var(--vermilion));
+    box-shadow: var(--shadow-ink);
+  }
+  .ctrl-primary:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+  .ctrl-primary:not(:disabled):active {
+    transform: translateY(0);
+  }
+  .ctrl-icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ctrl-primary .ctrl-icon { width: 30px; height: 30px; }
+
+  /* ============ 모달 ============ */
+  .modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal.active { display: flex; }
+  .modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 14, 13, 0.6);
+    backdrop-filter: blur(6px);
+    animation: fadeIn 0.25s;
+  }
+  .modal-card {
+    position: relative;
+    background: var(--paper-50);
+    border-radius: var(--radius-lg);
+    padding: 28px 24px 22px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: var(--shadow-lg);
+    animation: slideUp 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .modal-title {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--ink-900);
+    margin-bottom: 16px;
+    letter-spacing: -0.02em;
+  }
+  .modal-list {
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+  .modal-list li {
+    font-size: 14px;
+    color: var(--ink-700);
+    line-height: 1.6;
+  }
+  .modal-list strong { color: var(--vermilion); font-weight: 700; }
+  .modal-close {
+    width: 100%;
+    padding: 14px;
+    background: var(--ink-900);
+    color: var(--paper-50);
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 15px;
+    transition: all 0.2s;
+  }
+  .modal-close:hover { background: var(--ink-700); }
+
+  /* 에러 모달 전용 */
+  .error-icon {
+    width: 72px; height: 72px;
+    margin-bottom: 14px;
+    color: var(--vermilion);
+    background: rgba(200, 54, 42, 0.08);
+    border-radius: 18px;
+    display: grid; place-items: center;
+  }
+  .error-icon svg { width: 44px; height: 44px; }
+
+  /* 평가 원리 모달 전용 */
+  .principle-hero {
+    width: 88px; height: 88px;
+    margin: 0 auto 14px;
+    color: var(--vermilion);
+    background: radial-gradient(circle, rgba(200, 54, 42, 0.14), rgba(200, 54, 42, 0.04));
+    border-radius: 24px;
+    display: grid; place-items: center;
+    position: relative;
+  }
+  .principle-hero::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 1.5px dashed rgba(200, 54, 42, 0.25);
+    border-radius: 28px;
+    animation: rotateSlow 30s linear infinite;
+  }
+  @keyframes rotateSlow { to { transform: rotate(360deg); } }
+  .principle-hero svg { width: 56px; height: 56px; position: relative; z-index: 1; }
+
+  .modal-subdesc {
+    text-align: center;
+    font-size: 13px;
+    color: var(--ink-500);
+    margin-top: -8px;
+    margin-bottom: 18px;
+    letter-spacing: -0.01em;
+  }
+
+  .principle-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .principle-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--paper-100);
+    border-radius: 12px;
+    border: 1px solid rgba(15, 14, 13, 0.04);
+  }
+  .principle-icon {
+    width: 40px; height: 40px;
+    display: grid; place-items: center;
+    background: #fff;
+    color: var(--vermilion);
+    border-radius: 10px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(15, 14, 13, 0.04);
+  }
+  .principle-icon svg { width: 22px; height: 22px; }
+  .principle-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .principle-text strong {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--ink-900);
+    letter-spacing: -0.01em;
+  }
+  .principle-text span {
+    font-size: 12.5px;
+    color: var(--ink-500);
+    line-height: 1.4;
+  }
+
+  .modal-desc {
+    font-size: 14px;
+    color: var(--ink-600);
+    line-height: 1.55;
+    margin-bottom: 18px;
+  }
+
+  .help-box {
+    background: var(--paper-100);
+    border-left: 3px solid var(--vermilion);
+    padding: 14px 16px;
+    border-radius: 8px;
+    margin-bottom: 18px;
+    font-size: 13px;
+  }
+  .help-box strong:first-child {
+    display: block;
+    color: var(--ink-900);
+    font-weight: 700;
+    margin-bottom: 8px;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+  }
+  .help-box ol {
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .help-box li {
+    color: var(--ink-700);
+    line-height: 1.5;
+  }
+  .help-box strong { color: var(--vermilion); font-weight: 700; }
+
+  .modal-close.primary-btn {
+    background: linear-gradient(135deg, var(--vermilion-deep), var(--vermilion));
+    margin-bottom: 8px;
+    box-shadow: var(--shadow-ink);
+  }
+  .modal-close.primary-btn:hover {
+    filter: brightness(1.08);
+    background: linear-gradient(135deg, var(--vermilion-deep), var(--vermilion));
+  }
+  .modal-close.secondary-btn {
+    background: transparent;
+    color: var(--ink-600);
+    border: 1px solid rgba(15, 14, 13, 0.12);
+  }
+  .modal-close.secondary-btn:hover {
+    background: rgba(15, 14, 13, 0.04);
+    color: var(--ink-800);
+  }
+
+  /* ============ 토스트 ============ */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--ink-900);
+    color: var(--paper-50);
+    padding: 14px 22px;
+    border-radius: 100px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 200;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ============ 반응형 ============ */
+  @media (min-width: 640px) {
+    .app { padding: 20px 24px 24px; gap: 12px; }
+    .viewport { max-height: 560px; }
+    .score-value { font-size: 64px; }
+  }
+
+  @media (max-width: 360px) {
+    .app { padding: 10px 12px 14px; gap: 8px; }
+    .brand-title { font-size: 16px; }
+    .brand-sub { font-size: 10.5px; }
+    .brand-mark { width: 38px; height: 38px; font-size: 20px; }
+    .icon-btn { width: 34px; height: 34px; }
+    .icon-btn svg { width: 18px; height: 18px; }
+    .guide-title { font-size: 13.5px; }
+    .guide-tag { font-size: 10px; padding: 2px 6px; }
+    .score-value { font-size: 44px; }
+    .score-panel { padding: 12px 14px; gap: 12px; }
+    .metrics { padding-left: 10px; }
+    .metric { grid-template-columns: 52px 1fr; gap: 6px; }
+    .metric-label { font-size: 10.5px; }
+    .ctrl-btn { padding: 12px 8px; font-size: 13px; }
+    .ctrl-btn svg { width: 22px; height: 22px; }
+  }
+
+  /* 짧은 세로 화면 (iPhone SE 등) */
+  @media (max-height: 700px) and (orientation: portrait) {
+    .app { padding: 8px 12px 12px; gap: 8px; }
+    .viewport { border-radius: 16px; }
+    .score-panel { padding: 10px 14px; }
+    .score-value { font-size: 40px; }
+    .guide-bar { padding: 8px 12px; }
+    .ctrl-btn { padding: 12px 10px; }
+  }
+
+  /* 접근성: 모션 감소 선호 */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+
+  <title>바른 글쓰기 평가</title>
+</head>
+<body>
+
+  <!-- 배경 장식 레이어 -->
+  <div class="ink-bg" aria-hidden="true">
+    <div class="ink-blob blob-1"></div>
+    <div class="ink-blob blob-2"></div>
+    <div class="paper-grain"></div>
+  </div>
+
+  <!-- 앱 컨테이너 -->
+  <div class="app">
+
+    <!-- 헤더 (압축) -->
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-mark">墨</span>
+        <div class="brand-text">
+          <h1 class="brand-title">바른 글쓰기 평가</h1>
+          <p class="brand-sub" id="guideDesc">반듯한 글씨일수록 높은 점수를 받아요</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" id="principleBtn" aria-label="평가 원리">
+          <svg viewBox="0 0 28 28" fill="none">
+            <!-- 저울 받침 -->
+            <path d="M14 6v17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M9 23h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <!-- 상단 연결선 -->
+            <path d="M6 9l8-3 8 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- 왼쪽 저울판 -->
+            <path d="M3 10l3 5 3-5" fill="currentColor" opacity="0.2"/>
+            <path d="M3 10l3 5 3-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" fill="none"/>
+            <!-- 오른쪽 저울판 (글씨 표시) -->
+            <path d="M19 10l3 5 3-5" fill="currentColor" opacity="0.2"/>
+            <path d="M19 10l3 5 3-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" fill="none"/>
+            <!-- 상단 별 장식 -->
+            <path d="M14 3l.6 1.4L16 5l-1.4.6L14 7l-.6-1.4L12 5l1.4-.6z" fill="currentColor"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="infoBtn" aria-label="도움말">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M4 11.5C4 7.36 7.58 4 12 4s8 3.36 8 7.5-3.58 7.5-8 7.5c-.73 0-1.44-.09-2.11-.27l-3.09 1.67a.5.5 0 0 1-.73-.54l.57-2.67A7.24 7.24 0 0 1 4 11.5Z" fill="currentColor" opacity="0.2"/>
+            <path d="M4 11.5C4 7.36 7.58 4 12 4s8 3.36 8 7.5-3.58 7.5-8 7.5c-.73 0-1.44-.09-2.11-.27l-3.09 1.67a.5.5 0 0 1-.73-.54l.57-2.67A7.24 7.24 0 0 1 4 11.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M10 10c0-1.1.9-2 2-2s2 .9 2 2c0 .8-.5 1.3-1 1.6-.6.4-1 .7-1 1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+            <circle cx="12" cy="15.5" r="0.9" fill="currentColor"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- 간결한 가이드 바 -->
+    <div class="guide-bar" id="guideMessage">
+      <span class="guide-tag" id="guideTag">STEP 01</span>
+      <h2 class="guide-title" id="guideTitle">A4 용지를 프레임에 맞춰주세요</h2>
+    </div>
+
+    <!-- 카메라 뷰 영역 -->
+    <main class="viewport-wrap">
+      <div class="viewport" id="viewport">
+
+        <!-- 초기 안내 화면 -->
+        <div class="placeholder" id="placeholder">
+          <div class="placeholder-icon" aria-hidden="true">
+            <svg viewBox="0 0 140 140" fill="none">
+              <!-- 배경 원 장식 -->
+              <circle cx="70" cy="70" r="58" fill="currentColor" opacity="0.08"/>
+              <circle cx="70" cy="70" r="45" fill="currentColor" opacity="0.05"/>
+
+              <!-- 종이 -->
+              <rect x="32" y="36" width="62" height="76" rx="6" fill="currentColor" opacity="0.15"/>
+              <rect x="32" y="36" width="62" height="76" rx="6" stroke="currentColor" stroke-width="2.5" fill="none"/>
+
+              <!-- 종이 위 글씨 라인 -->
+              <line x1="42" y1="52" x2="78" y2="52" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" opacity="0.55"/>
+              <line x1="42" y1="62" x2="70" y2="62" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" opacity="0.55"/>
+              <line x1="42" y1="72" x2="84" y2="72" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" opacity="0.55"/>
+              <line x1="42" y1="82" x2="64" y2="82" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" opacity="0.4"/>
+
+              <!-- 연필 (기울어진) -->
+              <g transform="rotate(35 96 60)">
+                <!-- 연필 몸통 -->
+                <rect x="82" y="48" width="44" height="12" rx="2" fill="currentColor"/>
+                <!-- 연필 지우개 (끝부분) -->
+                <rect x="78" y="48" width="8" height="12" rx="2" fill="currentColor" opacity="0.6"/>
+                <!-- 연필 촉 -->
+                <path d="M126 48 L134 54 L126 60 Z" fill="currentColor" opacity="0.8"/>
+                <path d="M130 54 L134 54" stroke="white" stroke-width="2" stroke-linecap="round"/>
+              </g>
+
+              <!-- 반짝이는 별 장식들 -->
+              <g fill="currentColor" opacity="0.7">
+                <path d="M22 48 L24 52 L28 54 L24 56 L22 60 L20 56 L16 54 L20 52 Z"/>
+                <path d="M114 96 L115.5 99 L118.5 100.5 L115.5 102 L114 105 L112.5 102 L109.5 100.5 L112.5 99 Z"/>
+                <circle cx="106" cy="30" r="2"/>
+                <circle cx="28" cy="108" r="2"/>
+              </g>
+            </svg>
+          </div>
+          <p class="placeholder-text">카메라를 켜고 시작해주세요</p>
+        </div>
+
+        <!-- 실제 비디오 (초기에는 숨김) -->
+        <video id="video" playsinline muted autoplay></video>
+
+        <!-- A4 가이드 프레임 -->
+        <div class="frame-guide" id="frameGuide">
+          <div class="corner tl"></div>
+          <div class="corner tr"></div>
+          <div class="corner bl"></div>
+          <div class="corner br"></div>
+          <div class="scan-line" id="scanLine"></div>
+          <span class="frame-label">A4 · 세로</span>
+        </div>
+
+        <!-- 분석 중 오버레이 -->
+        <div class="analyzing" id="analyzing">
+          <div class="spinner">
+            <div class="spinner-brush">筆</div>
+          </div>
+          <p class="analyzing-text">글씨를 분석하는 중…</p>
+        </div>
+
+        <!-- 캡처용 캔버스 (숨김) -->
+        <canvas id="canvas" style="display:none;"></canvas>
+      </div>
+    </main>
+
+    <!-- 점수 패널 -->
+    <section class="score-panel" id="scorePanel">
+      <div class="score-main">
+        <div class="score-label-wrap">
+          <span class="score-label">평가 점수</span>
+          <span class="score-unit">/ 100</span>
+        </div>
+        <div class="score-value" id="scoreValue">—</div>
+        <div class="score-rank" id="scoreRank">평가 대기중</div>
+      </div>
+
+      <!-- 세부 지표 -->
+      <div class="metrics" id="metrics">
+        <div class="metric">
+          <span class="metric-label">획 균형</span>
+          <div class="metric-bar"><div class="metric-fill" id="m1" style="width:0%"></div></div>
+        </div>
+        <div class="metric">
+          <span class="metric-label">자형 안정</span>
+          <div class="metric-bar"><div class="metric-fill" id="m2" style="width:0%"></div></div>
+        </div>
+        <div class="metric">
+          <span class="metric-label">정돈도</span>
+          <div class="metric-bar"><div class="metric-fill" id="m3" style="width:0%"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 컨트롤 버튼 -->
+    <div class="controls">
+      <button class="ctrl-btn ctrl-secondary" id="retryBtn" disabled>
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M4 12a8 8 0 0 1 14-5.3" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M14 3l4.5 3.5L15 10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <path d="M20 12a8 8 0 0 1-14 5.3" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M10 21l-4.5-3.5L9 14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.25"/>
+        </svg>
+        <span>다시</span>
+      </button>
+
+      <button class="ctrl-btn ctrl-primary" id="mainBtn">
+        <span class="ctrl-icon-wrap">
+          <svg class="ctrl-icon" viewBox="0 0 24 24" fill="none">
+            <!-- 카메라 본체 (둥근 모서리) -->
+            <path d="M4 8a3 3 0 0 1 3-3h1.2l1.1-1.6c.37-.56 1-.9 1.67-.9h2.06c.66 0 1.3.34 1.66.9L15.8 5H17a3 3 0 0 1 3 3v8.5a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V8Z" fill="currentColor"/>
+            <!-- 렌즈 -->
+            <circle cx="12" cy="12.5" r="4" fill="var(--ink-900)"/>
+            <circle cx="12" cy="12.5" r="2.5" fill="currentColor" opacity="0.95"/>
+            <!-- 렌즈 하이라이트 -->
+            <circle cx="10.8" cy="11.4" r="0.9" fill="white" opacity="0.95"/>
+            <!-- 반짝이 별 (상단 우측) -->
+            <path d="M20 4.5 L20.7 6 L22.2 6.7 L20.7 7.4 L20 8.9 L19.3 7.4 L17.8 6.7 L19.3 6 Z" fill="white" opacity="0.9"/>
+          </svg>
+        </span>
+        <span id="mainBtnText">카메라 켜기</span>
+      </button>
+
+      <button class="ctrl-btn ctrl-secondary" id="flipBtn" disabled>
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M4 8a3 3 0 0 1 3-3h2l1-1.5h4l1 1.5h2a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V8Z" fill="currentColor" opacity="0.18"/>
+          <path d="M4 8a3 3 0 0 1 3-3h2l1-1.5h4l1 1.5h2a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" fill="none"/>
+          <path d="M9 12a3 3 0 0 1 5.2-2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+          <path d="M15 12a3 3 0 0 1-5.2 2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+          <path d="M13.5 9 L14.5 10 L15.5 9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <path d="M10.5 15 L9.5 14 L8.5 15" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span>전환</span>
+      </button>
+    </div>
+
+    <!-- 도움말 모달 -->
+    <div class="modal" id="infoModal" role="dialog" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-card">
+        <h3 class="modal-title">사용 방법</h3>
+        <ol class="modal-list">
+          <li><strong>카메라 켜기</strong>를 눌러 허용해주세요</li>
+          <li>A4 용지가 가이드 프레임에 맞도록 조정해주세요</li>
+          <li><strong>평가하기</strong>를 누르면 글씨를 분석합니다</li>
+          <li>반듯하고 정돈된 글씨일수록 점수가 높아요</li>
+        </ol>
+        <button class="modal-close" id="modalClose">확인</button>
+      </div>
+    </div>
+
+    <!-- 평가 원리 모달 -->
+    <div class="modal" id="principleModal" role="dialog" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-card">
+        <div class="principle-hero">
+          <svg viewBox="0 0 80 80" fill="none">
+            <circle cx="40" cy="40" r="36" fill="currentColor" opacity="0.08"/>
+            <path d="M40 18v40" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M32 58h16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M20 25l20-7 20 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 28l8 12 8-12Z" fill="currentColor" opacity="0.25"/>
+            <path d="M12 28l8 12 8-12Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" fill="none"/>
+            <path d="M52 28l8 12 8-12Z" fill="currentColor" opacity="0.25"/>
+            <path d="M52 28l8 12 8-12Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" fill="none"/>
+            <path d="M40 8l1.2 2.8L44 12l-2.8 1.2L40 16l-1.2-2.8L36 12l2.8-1.2z" fill="currentColor"/>
+          </svg>
+        </div>
+        <h3 class="modal-title" style="text-align:center;">평가 원리</h3>
+        <p class="modal-subdesc">AI가 3가지 기준으로 분석해요</p>
+
+        <div class="principle-list">
+          <div class="principle-item">
+            <div class="principle-icon">
+              <svg viewBox="0 0 24 24" fill="none">
+                <rect x="4" y="5" width="16" height="3" rx="1.5" fill="currentColor"/>
+                <rect x="4" y="11" width="12" height="3" rx="1.5" fill="currentColor" opacity="0.7"/>
+                <rect x="4" y="17" width="14" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
+              </svg>
+            </div>
+            <div class="principle-text">
+              <strong>획 균형</strong>
+              <span>획의 굵기가 고르고 기울지 않았는지</span>
+            </div>
+          </div>
+          <div class="principle-item">
+            <div class="principle-icon">
+              <svg viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="4" width="6" height="6" rx="1" fill="currentColor"/>
+                <rect x="15" y="4" width="6" height="6" rx="1" fill="currentColor"/>
+                <rect x="3" y="14" width="6" height="6" rx="1" fill="currentColor"/>
+                <rect x="15" y="14" width="6" height="6" rx="1" fill="currentColor"/>
+              </svg>
+            </div>
+            <div class="principle-text">
+              <strong>자형 안정</strong>
+              <span>글자 크기와 간격이 일정한지</span>
+            </div>
+          </div>
+          <div class="principle-item">
+            <div class="principle-icon">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M5 4v16M12 4v16M19 4v16" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                <circle cx="21" cy="5" r="2" fill="currentColor"/>
+              </svg>
+            </div>
+            <div class="principle-text">
+              <strong>정돈도</strong>
+              <span>전체적으로 반듯하고 정돈되었는지</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="modal-close" id="principleClose">알겠어요</button>
+      </div>
+    </div>
+
+    <!-- 에러/권한 안내 모달 -->
+    <div class="modal" id="errorModal" role="dialog" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-card">
+        <div class="error-icon">
+          <svg viewBox="0 0 48 48" fill="none">
+            <!-- 카메라 본체 -->
+            <path d="M8 17a5 5 0 0 1 5-5h3l2-3h8l2 3h3a5 5 0 0 1 5 5v15a5 5 0 0 1-5 5H13a5 5 0 0 1-5-5V17Z" fill="currentColor" opacity="0.15"/>
+            <path d="M8 17a5 5 0 0 1 5-5h3l2-3h8l2 3h3a5 5 0 0 1 5 5v15a5 5 0 0 1-5 5H13a5 5 0 0 1-5-5V17Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" fill="none"/>
+            <!-- 렌즈 안 놀란 눈 (X자) -->
+            <circle cx="24" cy="24" r="7" fill="currentColor" opacity="0.2"/>
+            <circle cx="24" cy="24" r="7" stroke="currentColor" stroke-width="2.5" fill="none"/>
+            <path d="M21 21 L27 27 M27 21 L21 27" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            <!-- 땀방울 (당황한 느낌) -->
+            <path d="M39 14 Q41 17 41 19 Q41 21 39 21 Q37 21 37 19 Q37 17 39 14 Z" fill="currentColor" opacity="0.7"/>
+          </svg>
+        </div>
+        <h3 class="modal-title" id="errorTitle">카메라를 사용할 수 없어요</h3>
+        <p class="modal-desc" id="errorDesc">권한을 확인해주세요</p>
+
+        <div class="help-box">
+          <strong>아이폰에서 카메라 켜는 방법</strong>
+          <ol>
+            <li>설정(⚙️) 앱 → <strong>Safari</strong> 선택</li>
+            <li>아래로 내려 <strong>카메라</strong> 탭</li>
+            <li><strong>"확인"</strong> 또는 <strong>"허용"</strong> 선택</li>
+            <li>Safari로 돌아와 <strong>새로고침</strong></li>
+          </ol>
+        </div>
+
+        <button class="modal-close primary-btn" id="openNewWindowBtn" style="display:none;">
+          🔄 페이지 새로고침
+        </button>
+        <button class="modal-close secondary-btn" id="errorClose">닫기</button>
+      </div>
+    </div>
+
+    <!-- 토스트 -->
+    <div class="toast" id="toast"></div>
+
+  </div>
+
+  <script>
+(function() {
+  'use strict';
+
+  // ============ 상태 관리 ============
+  const state = {
+    stream: null,
+    facingMode: 'environment',
+    cameraOn: false,
+    analyzing: false,
+    lastScore: null
+  };
+
+  // ============ DOM 요소 ============
+  const el = {
+    video: document.getElementById('video'),
+    canvas: document.getElementById('canvas'),
+    placeholder: document.getElementById('placeholder'),
+    frameGuide: document.getElementById('frameGuide'),
+    scanLine: document.getElementById('scanLine'),
+    analyzing: document.getElementById('analyzing'),
+    mainBtn: document.getElementById('mainBtn'),
+    mainBtnText: document.getElementById('mainBtnText'),
+    retryBtn: document.getElementById('retryBtn'),
+    flipBtn: document.getElementById('flipBtn'),
+    scoreValue: document.getElementById('scoreValue'),
+    scoreRank: document.getElementById('scoreRank'),
+    m1: document.getElementById('m1'),
+    m2: document.getElementById('m2'),
+    m3: document.getElementById('m3'),
+    guideTitle: document.getElementById('guideTitle'),
+    guideDesc: document.getElementById('guideDesc'),
+    infoBtn: document.getElementById('infoBtn'),
+    infoModal: document.getElementById('infoModal'),
+    modalClose: document.getElementById('modalClose'),
+    modalBackdrop: document.querySelector('.modal-backdrop'),
+    toast: document.getElementById('toast')
+  };
+
+  // ============ 토스트 알림 ============
+  let toastTimer = null;
+  function toast(message) {
+    el.toast.textContent = message;
+    el.toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.toast.classList.remove('show'), 2400);
+  }
+
+  // ============ 환경 진단 ============
+  function diagnoseEnvironment() {
+    const issues = [];
+    const info = {};
+
+    info.isSecure = window.isSecureContext;
+    info.protocol = location.protocol;
+    info.inIframe = window.self !== window.top;
+    info.userAgent = navigator.userAgent;
+    info.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    info.isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    info.hasMediaDevices = !!(navigator.mediaDevices);
+    info.hasGetUserMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+
+    if (!info.isSecure) issues.push('HTTPS가 아닌 환경');
+    if (!info.hasMediaDevices) issues.push('mediaDevices API 없음');
+    if (!info.hasGetUserMedia) issues.push('getUserMedia API 없음');
+
+    console.log('[진단]', info, issues);
+    return { info, issues };
+  }
+
+  // ============ 카메라 제어 ============
+  async function startCamera() {
+    const diag = diagnoseEnvironment();
+
+    // 환경 체크
+    if (!diag.info.hasGetUserMedia) {
+      if (diag.info.inIframe) {
+        showIframeHelp();
+        return;
+      }
+      toast('이 브라우저는 카메라를 지원하지 않아요');
+      return;
+    }
+
+    try {
+      const constraints = {
+        video: {
+          facingMode: { ideal: state.facingMode },
+          width: { ideal: 1280 },
+          height: { ideal: 1280 }
+        },
+        audio: false
+      };
+
+      state.stream = await navigator.mediaDevices.getUserMedia(constraints);
+      el.video.srcObject = state.stream;
+      await el.video.play();
+
+      state.cameraOn = true;
+      el.video.classList.add('active');
+      el.placeholder.classList.add('hidden');
+      el.frameGuide.classList.add('active');
+
+      el.mainBtnText.textContent = '평가하기';
+      el.mainBtn.classList.add('ready');
+      el.retryBtn.disabled = false;
+      el.flipBtn.disabled = false;
+
+      updateGuide('STEP 02', 'A4 용지를 프레임에 맞춰주세요', '수직으로 선명하게 비춰주세요');
+    } catch (err) {
+      console.error('[카메라 오류]', err.name, err.message);
+      handleCameraError(err, diag);
+    }
+  }
+
+  function handleCameraError(err, diag) {
+    let title, desc, showReloadBtn = false;
+
+    switch (err.name) {
+      case 'NotAllowedError':
+      case 'PermissionDeniedError':
+        title = '카메라 권한을 허용해주세요';
+        desc = diag.info.isIOS
+          ? '설정 → Safari → 카메라 → "확인" 선택 후 새로고침'
+          : '브라우저 주소창의 자물쇠 아이콘에서 카메라를 허용해주세요';
+        showReloadBtn = true;
+        break;
+      case 'NotFoundError':
+      case 'DevicesNotFoundError':
+        title = '카메라를 찾을 수 없어요';
+        desc = '기기에 사용 가능한 카메라가 없습니다';
+        break;
+      case 'NotReadableError':
+      case 'TrackStartError':
+        title = '카메라를 사용할 수 없어요';
+        desc = '다른 앱에서 카메라를 쓰는 중일 수 있어요';
+        showReloadBtn = true;
+        break;
+      case 'OverconstrainedError':
+        title = '카메라 설정 오류';
+        desc = '요청한 카메라 설정을 지원하지 않아요';
+        break;
+      case 'SecurityError':
+        title = '보안 오류';
+        desc = 'HTTPS로 접속했는지 확인해주세요';
+        break;
+      default:
+        title = '카메라를 켤 수 없어요';
+        desc = err.message || '알 수 없는 오류가 발생했어요';
+        showReloadBtn = true;
+    }
+
+    showErrorModal(title, desc, showReloadBtn);
+  }
+
+  function showIframeHelp() {
+    showErrorModal(
+      '카메라를 사용할 수 없어요',
+      '이 브라우저는 카메라 기능을 지원하지 않습니다',
+      false
+    );
+  }
+
+  function showErrorModal(title, desc, showNewWindowBtn) {
+    const modal = document.getElementById('errorModal');
+    document.getElementById('errorTitle').textContent = title;
+    document.getElementById('errorDesc').textContent = desc;
+    const btn = document.getElementById('openNewWindowBtn');
+    btn.style.display = showNewWindowBtn ? 'block' : 'none';
+    modal.classList.add('active');
+  }
+
+  function stopCamera() {
+    if (state.stream) {
+      state.stream.getTracks().forEach(t => t.stop());
+      state.stream = null;
+    }
+    state.cameraOn = false;
+    el.video.classList.remove('active');
+    el.placeholder.classList.remove('hidden');
+    el.frameGuide.classList.remove('active');
+  }
+
+  async function flipCamera() {
+    state.facingMode = state.facingMode === 'environment' ? 'user' : 'environment';
+    stopCamera();
+    await startCamera();
+  }
+
+  // ============ 안내 메시지 업데이트 ============
+  function updateGuide(tag, title, desc) {
+    const tagEl = document.getElementById('guideTag');
+    if (tagEl) tagEl.textContent = tag;
+    // <br> 을 공백으로 치환해서 한 줄 bar에 맞춤
+    el.guideTitle.innerHTML = title.replace(/<br\s*\/?>/gi, ' ');
+    // brand-sub 자리에 보조 안내 표시
+    if (el.guideDesc) el.guideDesc.textContent = desc;
+  }
+
+  // ============ 프레임 캡처 ============
+  function captureFrame() {
+    const v = el.video;
+    const w = v.videoWidth;
+    const h = v.videoHeight;
+    if (!w || !h) return null;
+
+    // 중앙 프레임 영역만 캡처 (가이드 프레임 기준 약 84%)
+    const cropRatio = 0.84;
+    const cw = Math.floor(w * cropRatio);
+    const ch = Math.floor(h * cropRatio);
+    const sx = Math.floor((w - cw) / 2);
+    const sy = Math.floor((h - ch) / 2);
+
+    // 분석용 해상도로 축소 (성능/정확도 균형)
+    const targetW = 480;
+    const targetH = Math.floor(ch * (targetW / cw));
+
+    el.canvas.width = targetW;
+    el.canvas.height = targetH;
+    const ctx = el.canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(v, sx, sy, cw, ch, 0, 0, targetW, targetH);
+
+    return ctx.getImageData(0, 0, targetW, targetH);
+  }
+
+  // ============ 글씨 분석 알고리즘 ============
+  /**
+   * 궁서체 평가 방법론:
+   * 1. 이미지를 그레이스케일로 변환 후 적응적 이진화로 글씨 추출
+   * 2. 글씨 픽셀 비율 (ink density) - 너무 적거나 많으면 감점
+   * 3. 획 굵기 표준편차 (stroke variation) - 궁서체는 굵기 변화가 적당
+   * 4. 수직/수평 투영 분포 균일성 (자형 안정) - 글자 크기가 고를수록 좋음
+   * 5. 연결 성분의 종횡비 일관성 (문자 간 균형)
+   * 6. 기울기/수평 정렬 (행의 정렬도)
+   * => 이들을 가중 합산하여 100점 만점 산출
+   */
+  function analyzeHandwriting(imgData) {
+    const { data, width, height } = imgData;
+    const pixels = width * height;
+
+    // 1단계: 그레이스케일 변환
+    const gray = new Uint8Array(pixels);
+    let sum = 0;
+    for (let i = 0; i < pixels; i++) {
+      const idx = i * 4;
+      // 표준 루미넌스 공식
+      const g = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+      gray[i] = g;
+      sum += g;
+    }
+    const meanBrightness = sum / pixels;
+
+    // 2단계: Otsu 방식에 근접한 동적 임계값으로 이진화
+    // 간단하게는 평균보다 살짝 어두운 부분을 글씨로 판단
+    const threshold = Math.max(70, Math.min(180, meanBrightness * 0.78));
+    const binary = new Uint8Array(pixels);
+    let inkCount = 0;
+    for (let i = 0; i < pixels; i++) {
+      if (gray[i] < threshold) {
+        binary[i] = 1;
+        inkCount++;
+      }
+    }
+
+    const inkRatio = inkCount / pixels;
+
+    // 글씨가 너무 없거나 종이 전체가 어두우면 분석 실패
+    if (inkRatio < 0.008) {
+      return { score: null, reason: '글씨가 감지되지 않아요. 더 가까이 비춰주세요' };
+    }
+    if (inkRatio > 0.45) {
+      return { score: null, reason: '조명이 너무 어둡거나 배경이 진해요' };
+    }
+
+    // 3단계: 획 굵기 추정 (수평 방향 연속 런 길이의 분포)
+    const strokeLengths = [];
+    for (let y = 0; y < height; y++) {
+      let runLen = 0;
+      for (let x = 0; x < width; x++) {
+        if (binary[y * width + x]) {
+          runLen++;
+        } else if (runLen > 0) {
+          if (runLen >= 1 && runLen <= 20) strokeLengths.push(runLen);
+          runLen = 0;
+        }
+      }
+      if (runLen >= 1 && runLen <= 20) strokeLengths.push(runLen);
+    }
+
+    let strokeMean = 0, strokeStd = 0;
+    if (strokeLengths.length > 0) {
+      strokeMean = strokeLengths.reduce((a, b) => a + b, 0) / strokeLengths.length;
+      const variance = strokeLengths.reduce((acc, v) => acc + (v - strokeMean) ** 2, 0) / strokeLengths.length;
+      strokeStd = Math.sqrt(variance);
+    }
+    // 변동계수(CV): 궁서체는 굵기 변화가 일정함 - CV가 너무 크면 삐뚤빼뚤
+    const strokeCV = strokeMean > 0 ? strokeStd / strokeMean : 1;
+
+    // 4단계: 수평/수직 투영 프로파일
+    const rowProj = new Array(height).fill(0);
+    const colProj = new Array(width).fill(0);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (binary[y * width + x]) {
+          rowProj[y]++;
+          colProj[x]++;
+        }
+      }
+    }
+
+    // 행 분포: 글씨가 있는 행들의 간격 균일성
+    const activeRows = rowProj.map((v, i) => ({ v, i })).filter(r => r.v > width * 0.01);
+    const rowUniformity = computeUniformity(rowProj);
+    const colUniformity = computeUniformity(colProj);
+
+    // 5단계: 글씨의 수직 강조 정도 (궁서체는 세로획이 두드러짐)
+    // 수직 런 길이의 평균 / 수평 런 길이의 평균
+    const vStrokeLens = [];
+    for (let x = 0; x < width; x++) {
+      let runLen = 0;
+      for (let y = 0; y < height; y++) {
+        if (binary[y * width + x]) {
+          runLen++;
+        } else if (runLen > 0) {
+          if (runLen >= 1 && runLen <= 40) vStrokeLens.push(runLen);
+          runLen = 0;
+        }
+      }
+      if (runLen >= 1 && runLen <= 40) vStrokeLens.push(runLen);
+    }
+    const vMean = vStrokeLens.length > 0
+      ? vStrokeLens.reduce((a, b) => a + b, 0) / vStrokeLens.length
+      : 1;
+    const verticalEmphasis = vMean / Math.max(strokeMean, 1);
+    // 궁서체는 세로획이 가로획보다 길어지는 경향 -> ratio가 1.1~1.8 정도
+
+    // 6단계: 기울기 추정 - 상/중/하 영역의 글씨 중심 수평 위치 차이
+    const third = Math.floor(height / 3);
+    const centers = [];
+    for (let region = 0; region < 3; region++) {
+      let total = 0, xSum = 0;
+      const y0 = region * third;
+      const y1 = region === 2 ? height : (region + 1) * third;
+      for (let y = y0; y < y1; y++) {
+        for (let x = 0; x < width; x++) {
+          if (binary[y * width + x]) {
+            xSum += x;
+            total++;
+          }
+        }
+      }
+      centers.push(total > 0 ? xSum / total : width / 2);
+    }
+    const centerShift = Math.max(...centers) - Math.min(...centers);
+    const tiltPenalty = Math.min(1, centerShift / (width * 0.15)); // 0 = 정렬 좋음, 1 = 많이 기울어짐
+
+    // ============ 점수 산출 ============
+    // 각 지표를 0~1 범위로 정규화
+
+    // (a) 잉크 비율 적정성: 2~10% 구간에서 최고점
+    let inkScore;
+    if (inkRatio < 0.02) inkScore = inkRatio / 0.02;
+    else if (inkRatio <= 0.12) inkScore = 1.0;
+    else inkScore = Math.max(0, 1 - (inkRatio - 0.12) / 0.25);
+
+    // (b) 획 굵기 일관성 (궁서체는 일정한 굵기 유지)
+    // CV가 0.35~0.6 구간에서 궁서체에 가까움
+    let strokeScore;
+    if (strokeCV < 0.3) strokeScore = 0.85; // 너무 균일한 건 인쇄체 같음
+    else if (strokeCV <= 0.7) strokeScore = 1.0 - Math.abs(strokeCV - 0.5) * 0.5;
+    else strokeScore = Math.max(0, 1 - (strokeCV - 0.7) * 1.2);
+
+    // (c) 자형 안정성 (투영의 피크가 규칙적으로 반복)
+    const shapeStability = (rowUniformity * 0.6 + colUniformity * 0.4);
+
+    // (d) 궁서 유사도 = 세로 강조 + 굵기 일관성 + 기울기 없음
+    let verticalScore;
+    if (verticalEmphasis < 0.9) verticalScore = verticalEmphasis / 0.9 * 0.6;
+    else if (verticalEmphasis <= 1.8) verticalScore = 1.0 - Math.abs(verticalEmphasis - 1.35) * 0.4;
+    else verticalScore = Math.max(0.3, 1 - (verticalEmphasis - 1.8) * 0.3);
+
+    const gungseoScore = (verticalScore * 0.55 + strokeScore * 0.25 + (1 - tiltPenalty) * 0.20);
+
+    // 세부 지표 값 (0~1)
+    const metricStroke = clamp01(strokeScore * 0.6 + (1 - tiltPenalty) * 0.4);
+    const metricStability = clamp01(shapeStability * 0.7 + inkScore * 0.3);
+    const metricGungseo = clamp01(gungseoScore);
+
+    // 최종 점수 (가중 평균 후 현실적 체감 점수로 매핑)
+    const raw = (
+      metricStroke * 0.28 +
+      metricStability * 0.30 +
+      metricGungseo * 0.42
+    );
+    // 감마 보정(제곱근) - 중상위 구간에서 점수가 더 후하게 나오도록
+    // raw 0.55 → 0.74로 상승, raw 0.75 → 0.87로 상승
+    const boosted = Math.pow(clamp01(raw), 0.65);
+    // 보정된 값 0.40~0.92 구간을 62~99점으로 매핑
+    // → 잘 쓴 글씨(raw 0.6~0.75)가 88~95점대로 나옴
+    const mapped = mapRange(boosted, 0.40, 0.92, 62, 99);
+    const finalScore = Math.round(clamp(mapped, 55, 100));
+
+    return {
+      score: finalScore,
+      metrics: {
+        stroke: Math.round(metricStroke * 100),
+        stability: Math.round(metricStability * 100),
+        gungseo: Math.round(metricGungseo * 100)
+      },
+      debug: { inkRatio, strokeCV, verticalEmphasis, tiltPenalty }
+    };
+  }
+
+  // 유틸리티
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  function clamp01(v) { return clamp(v, 0, 1); }
+  function mapRange(v, inMin, inMax, outMin, outMax) {
+    const t = clamp((v - inMin) / (inMax - inMin), 0, 1);
+    return outMin + t * (outMax - outMin);
+  }
+
+  /**
+   * 투영 프로파일의 피크 균일성 계산 (피크 간격의 일관성)
+   * 반환값: 0~1 (1에 가까울수록 균일)
+   */
+  function computeUniformity(proj) {
+    if (proj.length < 10) return 0.5;
+    const max = Math.max(...proj);
+    if (max === 0) return 0;
+    const thr = max * 0.35;
+    const peaks = [];
+    let inPeak = false, start = 0;
+    for (let i = 0; i < proj.length; i++) {
+      if (proj[i] > thr && !inPeak) { inPeak = true; start = i; }
+      else if (proj[i] <= thr && inPeak) {
+        peaks.push((start + i - 1) / 2);
+        inPeak = false;
+      }
+    }
+    if (inPeak) peaks.push((start + proj.length - 1) / 2);
+
+    if (peaks.length < 2) return 0.4;
+    const gaps = [];
+    for (let i = 1; i < peaks.length; i++) gaps.push(peaks[i] - peaks[i - 1]);
+    const gm = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+    if (gm === 0) return 0.5;
+    const gv = gaps.reduce((s, g) => s + (g - gm) ** 2, 0) / gaps.length;
+    const cv = Math.sqrt(gv) / gm;
+    // CV가 작을수록 균일 -> 0~0.6 범위로 매핑
+    return clamp01(1 - cv * 1.2);
+  }
+
+  // ============ 평가 실행 ============
+  async function runEvaluation() {
+    if (!state.cameraOn || state.analyzing) return;
+
+    state.analyzing = true;
+    el.mainBtn.disabled = true;
+    el.flipBtn.disabled = true;
+    el.scanLine.classList.add('active');
+    el.analyzing.classList.add('active');
+
+    updateGuide('STEP 03', '글씨를 분석하는 중…', '잠시만 기다려주세요');
+
+    // 스캔 애니메이션을 위해 짧은 지연
+    await sleep(1600);
+
+    const imgData = captureFrame();
+    if (!imgData) {
+      finishEvaluation();
+      toast('이미지를 캡처할 수 없어요');
+      return;
+    }
+
+    let result;
+    try {
+      result = analyzeHandwriting(imgData);
+    } catch (e) {
+      console.error(e);
+      finishEvaluation();
+      toast('분석 중 오류가 발생했어요');
+      return;
+    }
+
+    finishEvaluation();
+
+    if (result.score === null) {
+      toast(result.reason || '다시 시도해주세요');
+      updateGuide('STEP 02', '다시 한번 맞춰주세요', '글씨가 선명하게 보여야 해요');
+      return;
+    }
+
+    displayScore(result);
+  }
+
+  function finishEvaluation() {
+    state.analyzing = false;
+    el.mainBtn.disabled = false;
+    el.flipBtn.disabled = false;
+    el.scanLine.classList.remove('active');
+    el.analyzing.classList.remove('active');
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  // ============ 점수 표시 ============
+  function displayScore(result) {
+    state.lastScore = result;
+    const { score, metrics } = result;
+
+    // 점수 카운트업 애니메이션
+    animateNumber(el.scoreValue, 0, score, 1200);
+    el.scoreValue.classList.add('animating');
+
+    // 등급 표시
+    const rank = getRank(score);
+    el.scoreRank.textContent = rank.label;
+    el.scoreRank.classList.remove('waiting');
+    el.scoreRank.style.color = rank.color;
+    el.scoreRank.style.background = rank.bg;
+
+    // 세부 지표 바
+    setTimeout(() => {
+      el.m1.style.width = metrics.stroke + '%';
+      el.m2.style.width = metrics.stability + '%';
+      el.m3.style.width = metrics.gungseo + '%';
+    }, 200);
+
+    updateGuide('RESULT', rank.title, rank.comment);
+  }
+
+  function getRank(score) {
+    if (score >= 95) return {
+      label: '최상 · 매우 바름',
+      title: '아주 잘 썼어요!',
+      comment: '매우 정돈되고 반듯한 글씨예요',
+      color: '#9a2419',
+      bg: 'rgba(200, 54, 42, 0.14)'
+    };
+    if (score >= 88) return {
+      label: '우수 · 바른 글씨',
+      title: '훌륭한 글씨예요',
+      comment: '획이 안정적이고 균형이 좋아요',
+      color: '#9a2419',
+      bg: 'rgba(200, 54, 42, 0.10)'
+    };
+    if (score >= 80) return {
+      label: '양호 · 괜찮은 글씨',
+      title: '잘 썼어요',
+      comment: '조금만 더 정성을 들이면 더 좋아져요',
+      color: '#b8924a',
+      bg: 'rgba(184, 146, 74, 0.14)'
+    };
+    if (score >= 70) return {
+      label: '보통 · 연습 필요',
+      title: '조금 더 연습해볼까요',
+      comment: '세로획을 곧게, 글자 크기를 고르게 써보세요',
+      color: '#b8924a',
+      bg: 'rgba(184, 146, 74, 0.10)'
+    };
+    return {
+      label: '분발 · 천천히',
+      title: '천천히 써보세요',
+      comment: '또박또박 정성스레 쓰면 달라져요',
+      color: '#5a5248',
+      bg: 'rgba(90, 82, 72, 0.10)'
+    };
+  }
+
+  function animateNumber(target, from, to, duration) {
+    const start = performance.now();
+    function tick(now) {
+      const t = Math.min((now - start) / duration, 1);
+      // easeOutCubic
+      const e = 1 - Math.pow(1 - t, 3);
+      const v = Math.round(from + (to - from) * e);
+      target.textContent = v;
+      if (t < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // ============ 다시 시작 ============
+  function reset() {
+    el.scoreValue.textContent = '—';
+    el.scoreValue.classList.remove('animating');
+    el.scoreRank.textContent = '평가 대기중';
+    el.scoreRank.classList.add('waiting');
+    el.scoreRank.style.color = '';
+    el.scoreRank.style.background = '';
+    el.m1.style.width = '0%';
+    el.m2.style.width = '0%';
+    el.m3.style.width = '0%';
+    state.lastScore = null;
+
+    if (state.cameraOn) {
+      updateGuide('STEP 02', 'A4 용지를 프레임에 맞춰주세요', '수직으로 선명하게 비춰주세요');
+    } else {
+      updateGuide('STEP 01', 'A4 용지를 프레임에 맞춰주세요', '반듯한 글씨일수록 높은 점수를 받아요');
+    }
+  }
+
+  // ============ 이벤트 바인딩 ============
+  el.mainBtn.addEventListener('click', async () => {
+    if (!state.cameraOn) {
+      await startCamera();
+    } else {
+      await runEvaluation();
+    }
+  });
+
+  el.retryBtn.addEventListener('click', reset);
+  el.flipBtn.addEventListener('click', flipCamera);
+
+  el.infoBtn.addEventListener('click', () => {
+    el.infoModal.classList.add('active');
+  });
+  function closeModal() { el.infoModal.classList.remove('active'); }
+  el.modalClose.addEventListener('click', closeModal);
+  el.modalBackdrop.addEventListener('click', closeModal);
+
+  // 평가 원리 모달
+  const principleBtn = document.getElementById('principleBtn');
+  const principleModal = document.getElementById('principleModal');
+  const principleClose = document.getElementById('principleClose');
+  if (principleBtn && principleModal) {
+    principleBtn.addEventListener('click', () => principleModal.classList.add('active'));
+    principleClose.addEventListener('click', () => principleModal.classList.remove('active'));
+    principleModal.querySelector('.modal-backdrop').addEventListener('click', () => principleModal.classList.remove('active'));
+  }
+
+  // 에러 모달 - 새 창 열기
+  const errorModal = document.getElementById('errorModal');
+  const errorClose = document.getElementById('errorClose');
+  const openNewWindowBtn = document.getElementById('openNewWindowBtn');
+
+  // "페이지 새로고침" 버튼 - 설정에서 권한 변경 후 다시 시도
+  openNewWindowBtn.addEventListener('click', () => {
+    window.location.reload();
+  });
+  errorClose.addEventListener('click', () => errorModal.classList.remove('active'));
+  errorModal.querySelector('.modal-backdrop').addEventListener('click', () => errorModal.classList.remove('active'));
+
+  // 페이지 이탈 시 카메라 정리
+  window.addEventListener('beforeunload', stopCamera);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && state.stream) {
+      // 모바일에서 백그라운드 전환 시 트랙 유지 (사용자 경험상)
+    }
+  });
+
+  // 초기 안내
+  console.log('%c바른 글쓰기 평가', 'font-family: serif; font-size: 20px; font-weight: bold; color: #c8362a;');
+})();
+</script>
+
+</body>
+</html>
