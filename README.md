@@ -1,114 +1,205 @@
-# 붓끝 · 글씨 평가 앱
+# 글뽐 · Geulppom
 
-카메라로 학생이 손으로 쓴 글씨를 비추면 **궁서체 유사도**를 기반으로 100점 만점 평가하는 웹 앱.
+**Will I be able to read my notes later?** / **내 필기, 나중에 읽을 수 있을까?**
 
-## ✨ 주요 특징
+A web app that evaluates the **readability** of your handwriting using AI, designed with college students' note-taking habits in mind.
+카메라로 노트를 비추면 **필기 가독성**을 AI가 평가해주는 웹 앱입니다. 대학생의 필기 특성에 맞춰 "흘려 써도 읽히기만 하면 OK!"를 모토로 합니다.
 
-- 📱 **모바일 최적화** 반응형 디자인
-- 📷 **실시간 카메라 뷰** + A4 가이드 프레임
-- 🎯 **자동 글씨 분석** - 획 균형, 자형 안정, 궁서 유사도
-- 🎨 **한국 전통 미학** - 먹색/주묵(朱墨) 팔레트 + 명조체 타이포그래피
-- 🔄 **전/후면 카메라 전환** 지원
+![Version](https://img.shields.io/badge/version-v26.04.18.1430-c8362a)
+![Platform](https://img.shields.io/badge/platform-Web-green)
+![Korean](https://img.shields.io/badge/lang-KO%20%2F%20EN-blue)
 
-## 🚀 GitHub Pages 배포 방법 (5분)
+---
 
-### 1단계. GitHub 저장소 만들기
+## ✨ Features / 주요 기능
 
-1. [GitHub](https://github.com) 로그인 후 오른쪽 상단 **`+` → `New repository`** 클릭
-2. Repository name: `handwriting-app` (원하는 이름으로)
-3. **Public** 선택 (무료 Pages는 Public에서만 제공)
-4. **Create repository** 클릭
+- 📷 **Real-time camera capture** / **실시간 카메라 촬영** — Point at your notes to start
+- 🤖 **AI handwriting recognition** / **AI 글자 인식** — Powered by Tesseract.js OCR
+- 📊 **3 evaluation metrics** / **3단계 평가 지표** — Clarity · Structure · Readability
+- 🎓 **Grade system (A+ to F)** / **학점 스타일 등급** — Fun and intuitive feedback
+- 📱 **Fully responsive** / **완전 반응형** — Mobile-first design
+- 🔒 **Privacy-first** / **프라이버시 보장** — Everything runs in your browser
 
-### 2단계. 파일 업로드
+---
 
-저장소 페이지에서:
-1. **`uploading an existing file`** 링크 클릭 (또는 `Add file → Upload files`)
-2. 다음 두 파일을 **드래그&드롭**:
-   - `index.html`
-   - `.nojekyll` (점으로 시작하는 빈 파일, 반드시 포함)
-3. 페이지 아래 **Commit changes** 버튼 클릭
+## 🏆 How It Works / 평가 방식
 
-> ⚠️ `.nojekyll` 파일이 안 보이면: Finder에서 `Cmd + Shift + .` (Mac) 로 숨김파일 표시
+### Metrics / 세부 지표
 
-### 3단계. GitHub Pages 활성화
+| Metric / 지표 | Meaning / 의미 | Measured by / 측정 방법 |
+|:---:|:---|:---|
+| **Clarity / 선명도** | Are individual letters crisp? <br/> 각 글자가 또렷한가 | OCR confidence score <br/> OCR 인식 신뢰도 |
+| **Structure / 구조감** | Are lines well-spaced? <br/> 줄이 겹치지 않고 정돈되었나 | Line spacing consistency <br/> 줄 간격·높이 일관성 |
+| **Readability / 판독성** | Can you read it later? <br/> 시간 지나도 읽을 수 있나 | Alignment & bbox analysis <br/> 경계 박스 정렬도 |
 
-1. 저장소 상단 메뉴에서 **Settings** 탭 클릭
-2. 왼쪽 사이드바에서 **Pages** 클릭
-3. **Source** 섹션:
-   - Branch: **`main`** 선택
-   - Folder: **`/ (root)`** 선택
-   - **Save** 클릭
-4. 1~2분 기다리면 상단에 URL이 나타남:
-   ```
-   https://사용자명.github.io/handwriting-app/
-   ```
+### Grading Scale / 등급 체계
 
-### 4단계. 아이폰에서 접속 🎉
+| Score | Grade | Message |
+|:---:|:---:|:---|
+| 95~100 | **A+ · 완벽 가독 / Perfect** | 시험 때 시간 절약 1등급 필기예요 <br/> *Top-tier notes — saves exam time* |
+| 85~94 | **A · 잘 읽힘 / Clear** | 친구도 빌려봐도 문제없어요 <br/> *Clear enough for a friend to borrow* |
+| 75~84 | **B · 본인만 OK / Personal-use** | 본인 복습용으론 충분 <br/> *Good for your own review* |
+| 65~74 | **C · 흐릿함 / Blurry** | 시간 지나면 헷갈릴 듯 <br/> *May confuse even you later* |
+| 55~64 | **D · 암호 수준 / Cryptic** | 교수님 필체보다 어려울 수 있어요 <br/> *Harder to read than the professor's* |
+| ~54 | **F · 미래의 나에게 / Dear Future Me** | 시험 전날 후회하지 말아요 <br/> *You'll regret this the night before the exam* |
 
-1. 위 URL을 **Safari**에서 열기 (HTTPS 자동 적용됨)
-2. **카메라 켜기** 버튼 탭
-3. 권한 팝업에서 **허용** 탭
-4. A4 용지를 프레임에 맞추고 **평가하기**!
+---
 
-## 📂 파일 구조
+## 🚀 Deployment (GitHub Pages) / 배포 방법
+
+### Step 1. Create Repository / 저장소 생성
+
+1. Login to [GitHub](https://github.com) → Click **`+` → New repository**
+2. Name it (e.g., `handwriting-app`) / 이름 입력 (예: `handwriting-app`)
+3. Select **Public** (required for free Pages) / **Public** 선택 (무료 Pages는 Public만 가능)
+4. Click **Create repository**
+
+### Step 2. Upload Files / 파일 업로드
+
+Upload these two files to the repository root:
+저장소 루트에 아래 두 파일을 업로드하세요:
+
+- `index.html` — The app itself / 앱 본체
+- `.nojekyll` — Empty file, disables Jekyll / 빈 파일, Jekyll 비활성화용
+
+> 💡 If `.nojekyll` isn't visible in Finder, press `Cmd + Shift + .` (Mac) to show hidden files.
+> `.nojekyll` 파일이 Finder에서 안 보이면 `Cmd + Shift + .` (Mac)으로 숨김 파일을 표시하세요.
+
+### Step 3. Enable GitHub Pages / Pages 활성화
+
+1. Repository → **Settings** → **Pages**
+2. **Source**: `Deploy from a branch`
+3. **Branch**: `main` / **Folder**: `/ (root)`
+4. Click **Save**
+
+### Step 4. Access / 접속
+
+Wait 1–2 minutes, then open the generated URL:
+1~2분 뒤 배포 완료, 아래 URL로 접속:
+
+```
+https://사용자명.github.io/저장소명/
+```
+
+---
+
+## 📱 How to Use / 사용 방법
+
+1. **Open the URL in Safari (iPhone) or Chrome (Android)**
+   Safari(아이폰)나 Chrome(안드로이드)에서 URL 접속
+2. **Tap "Camera On" and allow camera access**
+   **카메라 켜기** 탭 → 권한 허용
+3. **Fit your handwritten page into the frame**
+   필기한 노트 한 페이지를 프레임에 맞추기
+4. **Tap "Evaluate" and wait a moment**
+   **평가하기** 탭 → 잠시 대기
+5. **See your score, grade, and detailed metrics**
+   점수·등급·세부 지표 확인!
+
+> ⏱ The first evaluation may take 10–20 seconds (loading Korean OCR model ~10MB).
+> Subsequent evaluations take only 2–5 seconds.
+>
+> 첫 평가는 **10~20초** 걸립니다 (한글 OCR 모델 약 10MB 다운로드).
+> 두 번째 평가부터는 **2~5초**로 빨라집니다.
+
+---
+
+## 📁 File Structure / 파일 구조
 
 ```
 handwriting-app/
-├── index.html    # 전체 앱 (HTML + CSS + JS 통합)
-├── .nojekyll     # Jekyll 프로세싱 비활성화 (빈 파일)
-└── README.md     # 이 문서
+├── index.html    # Main app (HTML + CSS + JS integrated)
+│                 # 앱 본체 (HTML·CSS·JS 통합 단일 파일)
+├── .nojekyll     # Disables Jekyll processing (empty file)
+│                 # Jekyll 프로세싱 비활성화 (빈 파일)
+└── README.md     # This document / 이 문서
 ```
 
-## 🎯 평가 알고리즘
+---
 
-카메라 프레임을 캡처하여 다음 지표를 분석합니다:
+## 🛠️ Tech Stack / 기술 스택
 
-| 지표 | 설명 | 가중치 |
-|------|------|--------|
-| **획 균형** | 획 굵기의 변동계수 + 기울기 없음 | 28% |
-| **자형 안정** | 수평/수직 투영 프로파일 균일성 | 30% |
-| **궁서 유사도** | 세로획 강조 비율 + 굵기 일관성 | 42% |
+- **Vanilla HTML + CSS + JS** — No frameworks, no build step
+  바닐라 JS, 프레임워크 없음, 빌드 과정 없음
+- **Tesseract.js 5** — In-browser OCR (Korean language pack)
+  브라우저 내 OCR (한글 언어팩)
+- **MediaDevices API** — Real-time camera access
+  실시간 카메라 접근
+- **Canvas API** — Image capture and pixel analysis
+  이미지 캡처 및 픽셀 분석
+- **Google Fonts** — Nanum Myeongjo (Korean serif display)
+  나눔명조 (한국어 세리프체)
 
-점수에 따라 5단계 등급:
-- **90점 이상**: 명필(名筆)
-- **80~89점**: 상수(上手)
-- **70~79점**: 중수(中手)
-- **60~69점**: 습작(習作)
-- **59점 이하**: 초필(初筆)
+---
 
-## 🔧 커스터마이징
+## 🎨 Design Philosophy / 디자인 컨셉
 
-평가 기준을 조정하고 싶다면 `index.html` 내의 `analyzeHandwriting` 함수를 수정하세요.
+- **Color Palette**: Ink black + Cinnabar red (朱墨) + Gold accents
+  색상: 먹색 + 주묵 + 금니 포인트
+- **Typography**: Mixing Korean serif display with sans-serif body
+  한국어 세리프 디스플레이 + 산세리프 본문 조합
+- **Motion**: Subtle pulse and float animations, scan line effect
+  은은한 펄스·플로팅·스캔라인 애니메이션
+- **Tone**: Friendly, encouraging, with a hint of humor
+  친근하고 격려하는 톤, 재치 살짝
 
-주요 조정 포인트:
-- `threshold` - 글씨 감지 임계값 (밝기)
-- `inkRatio` 범위 - 적정 글씨 양 (기본 2~12%)
-- `strokeCV` 범위 - 획 굵기 일관성 (기본 0.35~0.6)
-- `verticalEmphasis` - 세로 강조 최적값 (기본 1.35)
-- 최종 점수 매핑 구간 `mapRange(raw, 0.25, 0.95, 50, 98)`
+---
 
-## 🌐 브라우저 호환성
+## 🌐 Browser Compatibility / 브라우저 호환성
 
-| 브라우저 | 지원 |
-|---------|------|
+| Browser / 브라우저 | Support / 지원 |
+|:---|:---:|
 | iOS Safari 14.3+ | ✅ |
 | Android Chrome | ✅ |
-| Desktop Chrome/Edge/Firefox | ✅ |
+| Desktop Chrome / Edge / Firefox | ✅ |
 | Desktop Safari | ✅ |
 
-⚠️ HTTPS 환경에서만 카메라가 작동합니다 (GitHub Pages는 자동으로 HTTPS 적용).
+⚠️ **HTTPS required for camera access** (GitHub Pages provides HTTPS by default).
+⚠️ **카메라 사용은 HTTPS에서만 가능** (GitHub Pages는 자동 HTTPS 제공).
 
-## 🆘 문제 해결
+---
 
-**카메라 권한 팝업이 안 떠요**
-→ 설정 → Safari → 카메라 → "확인" 선택 후 페이지 새로고침
+## 🆘 Troubleshooting / 문제 해결
 
-**"이 브라우저는 카메라를 지원하지 않아요"**
+### Camera permission popup doesn't appear / 카메라 권한 팝업이 안 뜸
+→ Settings → Safari → Camera → "Allow", then reload
+→ 설정 → Safari → 카메라 → "허용" 선택 후 새로고침
+
+### "This browser doesn't support camera" / "이 브라우저는 카메라를 지원하지 않아요"
+→ Update to iOS 14.3+ or use Safari
 → iOS 14.3 이상으로 업데이트하거나 Safari 사용
 
-**점수가 계속 낮게 나와요**
-→ 밝은 조명에서 A4 용지가 프레임에 꽉 차도록 촬영. 글씨가 선명해야 정확함.
+### Scores seem too low / 점수가 너무 낮게 나옴
+→ Make sure the paper fills the frame in bright light
+→ 밝은 조명에서 A4 용지가 프레임에 꽉 차도록 촬영
 
-## 📝 라이선스
+### First evaluation takes forever / 첫 평가가 너무 오래 걸림
+→ Korean OCR model is loading (~10MB, first time only)
+→ 한글 OCR 모델 다운로드 중 (~10MB, 첫 실행만)
 
-자유롭게 사용·수정하세요.
+---
+
+## 📝 License / 라이선스
+
+MIT License — Free to use, modify, and distribute.
+자유롭게 사용·수정·배포 가능합니다.
+
+---
+
+## 🙏 Credits / 크레딧
+
+- **OCR Engine**: [Tesseract.js](https://tesseract.projectnaptha.com/)
+- **Fonts**: [Google Fonts](https://fonts.google.com) (Nanum Myeongjo, Noto Sans KR)
+- **Icons**: Custom SVG illustrations
+- **Inspiration**: Every college student who regretted their messy notes on exam day ✍️
+  시험 전날 자기 필기를 후회한 모든 대학생들에게서 영감을 얻었습니다 ✍️
+
+---
+
+<p align="center">
+  Made with ☕ for students who want to know<br>
+  "Can future me actually read this?"<br>
+  <br>
+  "미래의 내가 이걸 읽을 수 있을까?"<br>
+  궁금한 모든 학생을 위해 ☕ 만들었습니다
+</p>
